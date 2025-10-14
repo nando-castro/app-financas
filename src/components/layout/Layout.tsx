@@ -14,6 +14,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: Home },
+  { name: 'Financas', path: '/financas', icon: Wallet },
   { name: 'Rendas', path: '/financas/rendas', icon: TrendingUp },
   { name: 'Despesas', path: '/financas/despesas', icon: Wallet },
   { name: 'Categorias', path: '/categorias', icon: Tag },

@@ -1,13 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Layout from './components/layout/Layout';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import './index.css';
-import Dashboard from './pages/Dashboard';
-import LoginPage from './pages/Login';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Layout from "./components/layout/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import "./index.css";
+import Dashboard from "./pages/Dashboard";
+import FinancasPage from "./pages/FinancasPage";
+import LoginPage from "./pages/Login";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
@@ -21,6 +22,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financas"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FinancasPage />
               </Layout>
             </ProtectedRoute>
           }
