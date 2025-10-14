@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
 import CategoriasPage from "./pages/CategoriasPage";
 import Dashboard from "./pages/Dashboard";
+import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
 import LoginPage from "./pages/Login";
 
@@ -82,11 +83,21 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           element={
             <ProtectedRoute>
               <Layout>
-                <h1 className="text-2xl font-semibold">Estatísticas</h1>
+                <EstatisticasPage />
               </Layout>
             </ProtectedRoute>
           }
         />
+        {/* <Route
+          path="/estatisticas"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <h1 className="text-2xl font-semibold">Estatísticas</h1>
+              </Layout>
+            </ProtectedRoute>
+          }
+        /> */}
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
