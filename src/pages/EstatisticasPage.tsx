@@ -1,32 +1,36 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import api from '@/services/api';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useTheme } from "@/hooks/useTheme";
+import api from "@/services/api";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useEffect, useState } from "react";
 import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    Cell,
-    Pie,
-    PieChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export default function EstatisticasPage() {
   const [dadosMensal, setDadosMensal] = useState<any>(null);
   const [dadosAnual, setDadosAnual] = useState<any[]>([]);
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(new Date().getFullYear());
-  const COLORS = ['#16a34a', '#dc2626']; // verde e vermelho
+  const COLORS = ["#16a34a", "#dc2626"]; // verde e vermelho
+  const { theme } = useTheme();
 
   async function carregarMensal() {
-    const { data } = await api.get(`/financas/estatisticas/mensal?mes=${mes}&ano=${ano}`);
+    const { data } = await api.get(
+      `/financas/estatisticas/mensal?mes=${mes}&ano=${ano}`
+    );
     setDadosMensal(data);
   }
 
@@ -68,7 +72,12 @@ export default function EstatisticasPage() {
             className="w-28"
           />
         </div>
-        <Button onClick={() => { carregarMensal(); carregarAnual(); }}>
+        <Button
+          onClick={() => {
+            carregarMensal();
+            carregarAnual();
+          }}
+        >
           Atualizar
         </Button>
       </div>
@@ -76,29 +85,37 @@ export default function EstatisticasPage() {
       {/* Resumo mensal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader><CardTitle>Rendas</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Rendas</CardTitle>
+          </CardHeader>
           <CardContent className="text-2xl font-semibold text-green-600">
             R$ {dadosMensal.totalRendas.toFixed(2)}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Despesas</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Despesas</CardTitle>
+          </CardHeader>
           <CardContent className="text-2xl font-semibold text-red-600">
             R$ {dadosMensal.totalDespesas.toFixed(2)}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Saldo</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Saldo</CardTitle>
+          </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              dadosMensal.saldo >= 0 ? 'text-green-600' : 'text-red-600'
+              dadosMensal.saldo >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
             R$ {dadosMensal.saldo.toFixed(2)}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Economia</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Economia</CardTitle>
+          </CardHeader>
           <CardContent className="text-2xl font-semibold text-slate-600">
             {dadosMensal.percentualEconomia}
           </CardContent>
@@ -114,13 +131,50 @@ export default function EstatisticasPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dadosAnual}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="rendas" fill="#16a34a" name="Rendas" />
-                <Bar dataKey="despesas" fill="#dc2626" name="Despesas" />
+              <BarChart
+                data={dadosAnual}
+                style={{
+                  backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff",
+                  borderRadius: "8px",
+                  padding: "10px",
+                }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={theme === "dark" ? "#334155" : "#e5e7eb"}
+                />
+                <XAxis
+                  dataKey="mes"
+                  tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }}
+                  axisLine={{
+                    stroke: theme === "dark" ? "#475569" : "#9ca3af",
+                  }}
+                />
+                <YAxis
+                  tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }}
+                  axisLine={{
+                    stroke: theme === "dark" ? "#475569" : "#9ca3af",
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
+                    borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                    color: theme === "dark" ? "#f8fafc" : "#111827",
+                  }}
+                />
+                <Bar
+                  dataKey="rendas"
+                  fill="#22c55e"
+                  name="Rendas"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="despesas"
+                  fill="#ef4444"
+                  name="Despesas"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -130,31 +184,47 @@ export default function EstatisticasPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              Distribuição - {format(new Date(ano, mes - 1, 1), 'MMMM yyyy', { locale: ptBR })}
+              Distribuição -{" "}
+              {format(new Date(ano, mes - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
+              <PieChart
+                style={{
+                  backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff",
+                  borderRadius: "8px",
+                  padding: "10px",
+                }}
+              >
                 <Pie
                   data={[
-                    { name: 'Rendas', value: dadosMensal.totalRendas },
-                    { name: 'Despesas', value: dadosMensal.totalDespesas },
+                    { name: "Rendas", value: dadosMensal.totalRendas },
+                    { name: "Despesas", value: dadosMensal.totalDespesas },
                   ]}
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label
+                  label={(entry) =>
+                    `${entry.name}: ${(
+                      (entry.value /
+                        (dadosMensal.totalRendas + dadosMensal.totalDespesas)) *
+                      100
+                    ).toFixed(1)}%`
+                  }
                   dataKey="value"
                 >
-                  {[
-                    { name: 'Rendas', value: dadosMensal.totalRendas },
-                    { name: 'Despesas', value: dadosMensal.totalDespesas },
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                  ))}
+                  <Cell fill="#22c55e" />
+                  <Cell fill="#ef4444" />
                 </Pie>
-                <Tooltip />
+
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
+                    borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                    color: theme === "dark" ? "#f8fafc" : "#111827",
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

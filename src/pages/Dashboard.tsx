@@ -1,20 +1,32 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import api from '@/services/api';
-import { ArrowDownCircle, ArrowUpCircle, DollarSign } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTheme } from "@/hooks/useTheme";
+import api from "@/services/api";
+import { ArrowDownCircle, ArrowUpCircle, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export default function Dashboard() {
   const [resumo, setResumo] = useState<any>(null);
   const [tendencia, setTendencia] = useState<any[]>([]);
   const [ultimasRendas, setUltimasRendas] = useState<any[]>([]);
   const [ultimasDespesas, setUltimasDespesas] = useState<any[]>([]);
+  const { theme } = useTheme();
 
   const mesAtual = new Date().getMonth() + 1;
   const anoAtual = new Date().getFullYear();
 
   async function carregarResumo() {
-    const { data } = await api.get(`/financas/estatisticas/mensal?mes=${mesAtual}&ano=${anoAtual}`);
+    const { data } = await api.get(
+      `/financas/estatisticas/mensal?mes=${mesAtual}&ano=${anoAtual}`
+    );
     setResumo(data);
   }
 
@@ -25,8 +37,8 @@ export default function Dashboard() {
 
   async function carregarUltimas() {
     const [rendas, despesas] = await Promise.all([
-      api.get('/financas/tipo/RENDA'),
-      api.get('/financas/tipo/DESPESA'),
+      api.get("/financas/tipo/RENDA"),
+      api.get("/financas/tipo/DESPESA"),
     ]);
 
     // pegar só as 5 mais recentes
@@ -73,7 +85,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              resumo.saldo >= 0 ? 'text-green-600' : 'text-red-600'
+              resumo.saldo >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
             R$ {resumo.saldo.toFixed(2)}
@@ -97,13 +109,50 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={tendencia}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="rendas" stroke="#16a34a" name="Rendas" />
-              <Line type="monotone" dataKey="despesas" stroke="#dc2626" name="Despesas" />
+            <LineChart
+              data={tendencia}
+              style={{
+                backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff", // fundo escuro ou branco
+                borderRadius: "8px",
+                padding: "10px",
+              }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={theme === "dark" ? "#334155" : "#e5e7eb"} // grid adaptado
+              />
+              <XAxis
+                dataKey="mes"
+                tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }} // cor dos ticks
+                axisLine={{ stroke: theme === "dark" ? "#475569" : "#9ca3af" }}
+              />
+              <YAxis
+                tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }}
+                axisLine={{ stroke: theme === "dark" ? "#475569" : "#9ca3af" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
+                  borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                  color: theme === "dark" ? "#f8fafc" : "#111827",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="rendas"
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                name="Rendas"
+              />
+              <Line
+                type="monotone"
+                dataKey="despesas"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                name="Despesas"
+              />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

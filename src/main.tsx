@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner"; // ✅ Import correto do Sonner
 import Layout from "./components/layout/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
 import CategoriasPage from "./pages/CategoriasPage";
+import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
@@ -28,6 +30,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/financas"
           element={
@@ -38,26 +41,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/financas/rendas"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <h1 className="text-2xl font-semibold">Minhas Rendas</h1>
-              </Layout>
-            </ProtectedRoute>
-          }
-        /> */}
-        {/* <Route
-          path="/financas/despesas"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <h1 className="text-2xl font-semibold">Minhas Despesas</h1>
-              </Layout>
-            </ProtectedRoute>
-          }
-        /> */}
+
         <Route
           path="/categorias"
           element={
@@ -68,16 +52,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/categorias"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <h1 className="text-2xl font-semibold">Categorias</h1>
-              </Layout>
-            </ProtectedRoute>
-          }
-        /> */}
+
         <Route
           path="/estatisticas"
           element={
@@ -88,17 +63,27 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/estatisticas"
+
+        <Route
+          path="/configuracoes"
           element={
             <ProtectedRoute>
               <Layout>
-                <h1 className="text-2xl font-semibold">Estatísticas</h1>
+                <ConfiguracoesPage />
               </Layout>
             </ProtectedRoute>
           }
-        /> */}
+        />
       </Routes>
+
+      {/* ✅ Toaster do Sonner global */}
+      <Toaster
+        richColors
+        position="top-right"
+        theme={localStorage.getItem("theme") === "dark" ? "dark" : "light"}
+        expand
+        duration={3000}
+      />
     </BrowserRouter>
   </React.StrictMode>
 );
