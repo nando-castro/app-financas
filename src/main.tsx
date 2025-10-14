@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
+import CategoriasPage from "./pages/CategoriasPage";
 import Dashboard from "./pages/Dashboard";
 import FinancasPage from "./pages/FinancasPage";
 import LoginPage from "./pages/Login";
@@ -36,7 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/financas/rendas"
           element={
             <ProtectedRoute>
@@ -45,8 +46,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               </Layout>
             </ProtectedRoute>
           }
-        />
-        <Route
+        /> */}
+        {/* <Route
           path="/financas/despesas"
           element={
             <ProtectedRoute>
@@ -55,8 +56,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               </Layout>
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
+          path="/categorias"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <CategoriasPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route
           path="/categorias"
           element={
             <ProtectedRoute>
@@ -65,7 +76,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               </Layout>
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/estatisticas"
           element={
