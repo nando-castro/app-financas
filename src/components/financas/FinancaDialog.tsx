@@ -1,43 +1,63 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import api from '@/services/api';
-import { useEffect, useState } from 'react';
+} from "@/components/ui/select";
+import api from "@/services/api";
+import { useEffect, useState } from "react";
 
-export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
+export function FinancaDialog({
+  open,
+  setOpen,
+  tipo,
+  onSave,
+  initialData,
+}: any) {
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
-    nome: '',
-    valor: '',
-    dataInicio: '',
-    dataFim: '',
-    parcelas: '',
-    categoriaId: '',
+    nome: "",
+    valor: "",
+    dataInicio: "",
+    dataFim: "",
+    parcelas: "",
+    categoriaId: "",
   });
 
   useEffect(() => {
-    if (open) carregarCategorias();
+    if (open) {
+      carregarCategorias();
+      if (initialData) {
+        setForm({
+          nome: initialData.nome || "",
+          valor: String(initialData.valor) || "",
+          dataInicio: initialData.dataInicio?.split("T")[0] || "",
+          dataFim: initialData.dataFim?.split("T")[0] || "",
+          parcelas: initialData.parcelas ? String(initialData.parcelas) : "",
+          categoriaId: initialData.categoria?.id
+            ? String(initialData.categoria.id)
+            : "",
+        });
+      }
+    }
   }, [open]);
 
   async function carregarCategorias() {
     try {
-      const { data } = await api.get('/categorias');
+      const { data } = await api.get("/categorias");
       setCategorias(data);
     } catch (err) {
       console.error(err);
@@ -47,7 +67,8 @@ export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
   async function handleSave() {
     try {
       setLoading(true);
-      await api.post('/financas', {
+
+      const payload = {
         nome: form.nome,
         valor: Number(form.valor),
         dataInicio: form.dataInicio,
@@ -55,20 +76,19 @@ export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
         parcelas: form.parcelas ? Number(form.parcelas) : null,
         tipo,
         categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
-      });
+      };
+
+      if (initialData?.id) {
+        await api.put(`/financas/${initialData.id}`, payload);
+      } else {
+        await api.post("/financas", payload);
+      }
+
       onSave();
-      setForm({
-        nome: '',
-        valor: '',
-        dataInicio: '',
-        dataFim: '',
-        parcelas: '',
-        categoriaId: '',
-      });
       setOpen(false);
     } catch (err) {
       console.error(err);
-      alert('Erro ao salvar finança');
+      alert("Erro ao salvar finança");
     } finally {
       setLoading(false);
     }
@@ -79,7 +99,7 @@ export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
       <DialogContent className="sm:max-w-md w-[95%] rounded-lg">
         <DialogHeader>
           <DialogTitle>
-            Adicionar {tipo === 'RENDA' ? 'Renda' : 'Despesa'}
+            Adicionar {tipo === "RENDA" ? "Renda" : "Despesa"}
           </DialogTitle>
         </DialogHeader>
 
@@ -142,9 +162,7 @@ export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
               <Input
                 type="date"
                 value={form.dataFim}
-                onChange={(e) =>
-                  setForm({ ...form, dataFim: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
               />
             </div>
           </div>
@@ -169,7 +187,7 @@ export function FinancaDialog({ open, setOpen, tipo, onSave }: any) {
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Salvando...' : 'Salvar'}
+            {loading ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
