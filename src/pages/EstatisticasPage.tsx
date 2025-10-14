@@ -24,7 +24,6 @@ export default function EstatisticasPage() {
   const [dadosAnual, setDadosAnual] = useState<any[]>([]);
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(new Date().getFullYear());
-  const COLORS = ["#16a34a", "#dc2626"]; // verde e vermelho
   const { theme } = useTheme();
 
   async function carregarMensal() {
