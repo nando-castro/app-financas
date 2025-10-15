@@ -10,8 +10,10 @@ import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -20,6 +22,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         {/* Público */}
         <Route path="/" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Privadas */}
         <Route

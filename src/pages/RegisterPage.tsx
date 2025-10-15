@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -77,11 +78,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Input
-                type="password"
-                placeholder="Senha"
-                {...register("senha")}
-              />
+              <PasswordInput placeholder="Senha" {...register("senha")} />
               {errors.senha && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.senha.message}
@@ -90,8 +87,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Confirmar senha"
                 {...register("confirmarSenha")}
               />

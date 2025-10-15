@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,12 +46,10 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <Input
+            <PasswordInput
               placeholder="Senha"
-              type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              required
             />
 
             <Button type="submit" className="mt-2 w-full" disabled={loading}>
@@ -65,6 +64,14 @@ export default function LoginPage() {
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               Cadastre-se
+            </a>
+          </p>
+          <p className="text-center text-sm text-slate-600 dark:text-slate-300 mt-3">
+            <a
+              href="/forgot-password"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Esqueci minha senha
             </a>
           </p>
         </CardContent>
