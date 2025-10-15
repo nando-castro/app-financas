@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
 import LoginPage from "./pages/Login";
+import RegisterPage from "./pages/RegisterPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <Routes>
         {/* Público */}
         <Route path="/" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* Privadas */}
         <Route
