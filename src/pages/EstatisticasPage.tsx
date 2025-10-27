@@ -49,36 +49,105 @@ export default function EstatisticasPage() {
     <div className="space-y-6">
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="text-sm text-slate-600">Mês</label>
-          <Input
-            type="number"
-            min={1}
-            max={12}
+        {/* --- Versão Desktop --- */}
+        <div className="hidden md:flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="text-sm text-slate-600">Mês</label>
+            <Input
+              type="number"
+              min={1}
+              max={12}
+              value={mes}
+              onChange={(e) => setMes(Number(e.target.value))}
+              className="w-20"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600">Ano</label>
+            <Input
+              type="number"
+              min={2000}
+              max={2100}
+              value={ano}
+              onChange={(e) => {
+                const novoAno = Number(e.target.value);
+                if (novoAno !== ano) {
+                  setAno(novoAno);
+                  setMes(1); // 🔹 Reset mês ao mudar de ano
+                }
+              }}
+              className="w-28"
+            />
+          </div>
+          <Button
+            onClick={() => {
+              carregarMensal();
+              carregarAnual();
+            }}
+          >
+            Atualizar
+          </Button>
+        </div>
+
+        {/* --- Versão Mobile / Tablet --- */}
+        <div className="flex flex-wrap gap-2 items-center md:hidden w-full">
+          <select
             value={mes}
             onChange={(e) => setMes(Number(e.target.value))}
-            className="w-20"
-          />
-        </div>
-        <div>
-          <label className="text-sm text-slate-600">Ano</label>
-          <Input
-            type="number"
-            min={2000}
-            max={2100}
+            className="border rounded-md px-3 py-2 flex-1"
+          >
+            {[
+              "Janeiro",
+              "Fevereiro",
+              "Março",
+              "Abril",
+              "Maio",
+              "Junho",
+              "Julho",
+              "Agosto",
+              "Setembro",
+              "Outubro",
+              "Novembro",
+              "Dezembro",
+            ].map((nome, index) => (
+              <option key={index} value={index + 1}>
+                {nome}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={ano}
-            onChange={(e) => setAno(Number(e.target.value))}
-            className="w-28"
-          />
+            onChange={(e) => {
+              const novoAno = Number(e.target.value);
+              if (novoAno !== ano) {
+                setAno(novoAno);
+                setMes(1);
+              }
+            }}
+            className="border rounded-md px-3 py-2 flex-1"
+          >
+            {Array.from(
+              { length: 6 },
+              (_, i) => new Date().getFullYear() - 2 + i
+            ).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 w-full justify-center"
+            onClick={() => {
+              carregarMensal();
+              carregarAnual();
+            }}
+          >
+            Atualizar
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            carregarMensal();
-            carregarAnual();
-          }}
-        >
-          Atualizar
-        </Button>
       </div>
 
       {/* Resumo mensal */}
@@ -129,7 +198,9 @@ export default function EstatisticasPage() {
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              dadosMensal.saldoAcumulado >= 0 ? "text-green-600" : "text-red-600"
+              dadosMensal.saldoAcumulado >= 0
+                ? "text-green-600"
+                : "text-red-600"
             }`}
           >
             R$ {dadosMensal.saldoAcumulado.toFixed(2)}
