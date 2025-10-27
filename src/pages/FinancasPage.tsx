@@ -1,12 +1,7 @@
 import { FinancaDialog } from '@/components/financas/FinancaDialog';
 import { FinancasTable } from '@/components/financas/FinancasTable';
 import { Button } from '@/components/ui/button';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Filter, PlusCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
@@ -14,22 +9,43 @@ import api from '../services/api';
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<'RENDA' | 'DESPESA'>('RENDA');
   const [financas, setFinancas] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [categoriaId, setCategoriaId] = useState<number | ''>('');
   const [open, setOpen] = useState(false);
 
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
 
+  /** 🔹 Busca as finanças com filtros */
   async function buscarFinancas() {
     const { data } = await api.get(`/financas/tipo/${tipo}`, {
-      params: { mes, ano },
+      params: {
+        mes,
+        ano,
+        categoriaId: categoriaId || undefined,
+      },
     });
     setFinancas(data);
   }
 
+  /** 🔹 Busca todas as categorias (pode ser filtradas por tipo se preferir) */
+  async function buscarCategorias() {
+    try {
+      const { data } = await api.get('/categorias');
+      setCategorias(data);
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+    }
+  }
+
+  useEffect(() => {
+    buscarCategorias();
+  }, []);
+
   useEffect(() => {
     buscarFinancas();
-  }, [tipo, mes, ano]);
+  }, [tipo, mes, ano, categoriaId]);
 
   const meses = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -66,11 +82,31 @@ export default function FinancasPage() {
           className="border rounded-md px-3 py-2"
         >
           {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map((y) => (
-            <option key={y} value={y}>{y}</option>
+            <option key={y} value={y}>
+              {y}
+            </option>
           ))}
         </select>
 
-        <Button variant="outline" className="flex items-center gap-2" onClick={buscarFinancas}>
+        {/* 🔹 Filtro de Categoria */}
+        <select
+          value={categoriaId}
+          onChange={(e) => setCategoriaId(e.target.value ? Number(e.target.value) : '')}
+          className="border rounded-md px-3 py-2 min-w-[180px]"
+        >
+          <option value="">Todas as Categorias</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={buscarFinancas}
+        >
           <Filter size={16} /> Filtrar
         </Button>
       </div>
