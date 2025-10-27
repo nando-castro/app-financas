@@ -82,7 +82,7 @@ export default function EstatisticasPage() {
       </div>
 
       {/* Resumo mensal */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Rendas</CardTitle>
@@ -101,7 +101,7 @@ export default function EstatisticasPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Saldo</CardTitle>
+            <CardTitle>Saldo Atual</CardTitle>
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
@@ -109,6 +109,30 @@ export default function EstatisticasPage() {
             }`}
           >
             R$ {dadosMensal.saldo.toFixed(2)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Saldo Anterior</CardTitle>
+          </CardHeader>
+          <CardContent
+            className={`text-2xl font-semibold ${
+              dadosMensal.saldoAnterior >= 0 ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            R$ {dadosMensal.saldoAnterior.toFixed(2)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Saldo Acumulado</CardTitle>
+          </CardHeader>
+          <CardContent
+            className={`text-2xl font-semibold ${
+              dadosMensal.saldoAcumulado >= 0 ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            R$ {dadosMensal.saldoAcumulado.toFixed(2)}
           </CardContent>
         </Card>
         <Card>
