@@ -254,6 +254,95 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* Lista de porcentagens por categoria */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Lista de Rendas */}
+            <div>
+              <h3 className="text-green-600 font-semibold mb-2 text-center">
+                Detalhamento das Rendas
+              </h3>
+              {categoriasRenda.length === 0 ? (
+                <p className="text-center text-slate-500">
+                  Nenhuma renda encontrada.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(() => {
+                    const totalRenda = categoriasRenda.reduce(
+                      (acc, c) => acc + c.total,
+                      0
+                    );
+                    return categoriasRenda.map((c, i) => {
+                      const porcentagem = (c.total / totalRenda) * 100;
+                      return (
+                        <li
+                          key={`renda-lista-${i}`}
+                          className="flex justify-between items-center border-b border-slate-100 pb-1"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: cores[i % cores.length],
+                              }}
+                            ></span>
+                            {c.categoria}
+                          </span>
+                          <span className="text-green-600 font-medium">
+                            {porcentagem.toFixed(1)}% — R$ {c.total.toFixed(2)}
+                          </span>
+                        </li>
+                      );
+                    });
+                  })()}
+                </ul>
+              )}
+            </div>
+
+            {/* Lista de Despesas */}
+            <div>
+              <h3 className="text-red-600 font-semibold mb-2 text-center">
+                Detalhamento das Despesas
+              </h3>
+              {categoriasDespesa.length === 0 ? (
+                <p className="text-center text-slate-500">
+                  Nenhuma despesa encontrada.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(() => {
+                    const totalDespesa = categoriasDespesa.reduce(
+                      (acc, c) => acc + c.total,
+                      0
+                    );
+                    return categoriasDespesa.map((c, i) => {
+                      const porcentagem = (c.total / totalDespesa) * 100;
+                      return (
+                        <li
+                          key={`despesa-lista-${i}`}
+                          className="flex justify-between items-center border-b border-slate-100 pb-1"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: cores[i % cores.length],
+                              }}
+                            ></span>
+                            {c.categoria}
+                          </span>
+                          <span className="text-red-600 font-medium">
+                            {porcentagem.toFixed(1)}% — R$ {c.total.toFixed(2)}
+                          </span>
+                        </li>
+                      );
+                    });
+                  })()}
+                </ul>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
