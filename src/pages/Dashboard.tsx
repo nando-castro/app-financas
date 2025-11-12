@@ -1,61 +1,122 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme } from "@/hooks/useTheme";
 import api from "@/services/api";
-import { ArrowDownCircle, ArrowUpCircle, DollarSign } from "lucide-react";
+import dayjs from "dayjs";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Calendar,
+  DollarSign,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import {
-  CartesianGrid,
-  Line,
-  LineChart,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 
 export default function Dashboard() {
   const [resumo, setResumo] = useState<any>(null);
-  const [tendencia, setTendencia] = useState<any[]>([]);
-  const [ultimasRendas, setUltimasRendas] = useState<any[]>([]);
-  const [ultimasDespesas, setUltimasDespesas] = useState<any[]>([]);
+  const [categoriasRenda, setCategoriasRenda] = useState<any[]>([]);
+  const [categoriasDespesa, setCategoriasDespesa] = useState<any[]>([]);
   const { theme } = useTheme();
 
-  const mesAtual = new Date().getMonth() + 1;
-  const anoAtual = new Date().getFullYear();
+  // Estado para o mês e ano selecionados
+  const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
+  const [ano, setAno] = useState<number>(new Date().getFullYear());
 
-  async function carregarResumo() {
+  const cores = [
+    "#10B981",
+    "#3B82F6",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#06B6D4",
+    "#EC4899",
+    "#84CC16",
+    "#F97316",
+    "#6366F1",
+    "#F87171",
+    "#FBBF24",
+    "#063fb1",
+    "#fbbf24",
+    "#610101",
+    "#7e5a00",
+  ];
+
+  // 🔹 Carregar resumo financeiro
+  async function carregarResumo(m: number, a: number) {
     const { data } = await api.get(
-      `/financas/estatisticas/mensal?mes=${mesAtual}&ano=${anoAtual}`
+      `/financas/estatisticas/mensal?mes=${m}&ano=${a}`
     );
     setResumo(data);
   }
 
-  async function carregarTendencia() {
-    const { data } = await api.get(`/financas/tendencia`);
-    setTendencia(data.meses || []);
+  // 🔹 Carregar categorias (RENDA / DESPESA)
+  async function carregarCategorias(m: number, a: number) {
+    const { data } = await api.get(
+      `/financas/estatisticas/categorias?mes=${m}&ano=${a}`
+    );
+    const rendas = data.filter((item: any) => item.tipo === "RENDA");
+    const despesas = data.filter((item: any) => item.tipo === "DESPESA");
+    setCategoriasRenda(rendas);
+    setCategoriasDespesa(despesas);
   }
 
-  async function carregarUltimas() {
-    const [rendas, despesas] = await Promise.all([
-      api.get("/financas/tipo/RENDA"),
-      api.get("/financas/tipo/DESPESA"),
-    ]);
-
-    // pegar só as 5 mais recentes
-    setUltimasRendas(rendas.data.slice(0, 5));
-    setUltimasDespesas(despesas.data.slice(0, 5));
-  }
-
+  // 🔹 Atualizar tudo ao alterar mês/ano
   useEffect(() => {
-    carregarResumo();
-    carregarTendencia();
-    carregarUltimas();
-  }, []);
+    carregarResumo(mes, ano);
+    carregarCategorias(mes, ano);
+  }, [mes, ano]);
+
+  // 🔹 Alterar mês e ano manualmente
+  function mudarMes(e: React.ChangeEvent<HTMLSelectElement>) {
+    setMes(Number(e.target.value));
+  }
+
+  function mudarAno(e: React.ChangeEvent<HTMLSelectElement>) {
+    setAno(Number(e.target.value));
+  }
 
   if (!resumo) return <p className="text-center mt-10">Carregando...</p>;
 
   return (
     <div className="space-y-6">
+      {/* Filtros de mês/ano */}
+      <div className="flex flex-wrap justify-end items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="text-slate-600" size={18} />
+          <select
+            value={mes}
+            onChange={mudarMes}
+            className="border rounded-lg px-2 py-1 text-sm"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {dayjs()
+                  .month(m - 1)
+                  .format("MMMM")}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={ano}
+            onChange={mudarAno}
+            className="border rounded-lg px-2 py-1 text-sm"
+          >
+            {Array.from({ length: 6 }, (_, i) => 2022 + i).map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Resumo mensal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -93,7 +154,7 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex items-center gap-2">
+          <CardHeader>
             <CardTitle>Economia</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold text-slate-600">
@@ -102,114 +163,99 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Gráfico de tendência */}
+      {/* Gráficos de pizza */}
       <Card>
         <CardHeader>
-          <CardTitle>Tendência de Rendas e Despesas</CardTitle>
+          <CardTitle>
+            Distribuição por Categorias —{" "}
+            {dayjs()
+              .month(mes - 1)
+              .format("MMMM")}{" "}
+            / {ano}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={tendencia}
-              style={{
-                backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff", // fundo escuro ou branco
-                borderRadius: "8px",
-                padding: "10px",
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={theme === "dark" ? "#334155" : "#e5e7eb"} // grid adaptado
-              />
-              <XAxis
-                dataKey="mes"
-                tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }} // cor dos ticks
-                axisLine={{ stroke: theme === "dark" ? "#475569" : "#9ca3af" }}
-              />
-              <YAxis
-                tick={{ fill: theme === "dark" ? "#f1f5f9" : "#1f2937" }}
-                axisLine={{ stroke: theme === "dark" ? "#475569" : "#9ca3af" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
-                  borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
-                  color: theme === "dark" ? "#f8fafc" : "#111827",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="rendas"
-                stroke="#22c55e"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                name="Rendas"
-              />
-              <Line
-                type="monotone"
-                dataKey="despesas"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                name="Despesas"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Rendas */}
+            <div className="flex flex-col items-center">
+              <h3 className="text-green-600 font-semibold mb-2">Rendas</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoriasRenda}
+                    dataKey="total"
+                    nameKey="categoria"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ categoria, percent }) =>
+                      `${categoria} ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {categoriasRenda.map((_, index) => (
+                      <Cell
+                        key={`renda-${index}`}
+                        fill={cores[index % cores.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => [
+                      `R$ ${value.toFixed(2)}`,
+                      "Valor",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
+                      borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                      color: theme === "dark" ? "#f8fafc" : "#111827",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Despesas */}
+            <div className="flex flex-col items-center">
+              <h3 className="text-red-600 font-semibold mb-2">Despesas</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoriasDespesa}
+                    dataKey="total"
+                    nameKey="categoria"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ categoria, percent }) =>
+                      `${categoria} ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {categoriasDespesa.map((_, index) => (
+                      <Cell
+                        key={`despesa-${index}`}
+                        fill={cores[index % cores.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => [
+                      `R$ ${value.toFixed(2)}`,
+                      "Valor",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: theme === "dark" ? "#1e293b" : "#f9fafb",
+                      borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                      color: theme === "dark" ? "#f8fafc" : "#111827",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Últimas movimentações */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Últimas Rendas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ultimasRendas.length === 0 ? (
-              <p className="text-slate-500">Nenhuma renda recente.</p>
-            ) : (
-              <ul className="space-y-2">
-                {ultimasRendas.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex justify-between border-b border-slate-100 pb-1"
-                  >
-                    <span>{r.nome}</span>
-                    <span className="text-green-600 font-medium">
-                      +R$ {r.valor.toFixed(2)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Últimas Despesas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ultimasDespesas.length === 0 ? (
-              <p className="text-slate-500">Nenhuma despesa recente.</p>
-            ) : (
-              <ul className="space-y-2">
-                {ultimasDespesas.map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex justify-between border-b border-slate-100 pb-1"
-                  >
-                    <span>{d.nome}</span>
-                    <span className="text-red-600 font-medium">
-                      -R$ {d.valor.toFixed(2)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Mensagem final */}
       <Card>
