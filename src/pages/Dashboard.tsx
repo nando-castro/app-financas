@@ -273,28 +273,31 @@ export default function Dashboard() {
                       (acc, c) => acc + c.total,
                       0
                     );
-                    return categoriasRenda.map((c, i) => {
-                      const porcentagem = (c.total / totalRenda) * 100;
-                      return (
-                        <li
-                          key={`renda-lista-${i}`}
-                          className="flex justify-between items-center border-b border-slate-100 pb-1"
-                        >
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{
-                                backgroundColor: cores[i % cores.length],
-                              }}
-                            ></span>
-                            {c.categoria}
-                          </span>
-                          <span className="text-green-600 font-medium">
-                            {porcentagem.toFixed(1)}% — R$ {c.total.toFixed(2)}
-                          </span>
-                        </li>
-                      );
-                    });
+                    return [...categoriasRenda]
+                      .sort((a, b) => b.total - a.total) // 🔹 Ordena do maior pro menor
+                      .map((c, i) => {
+                        const porcentagem = (c.total / totalRenda) * 100;
+                        return (
+                          <li
+                            key={`renda-lista-${i}`}
+                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor: cores[i % cores.length],
+                                }}
+                              ></span>
+                              {c.categoria}
+                            </span>
+                            <span className="text-green-600 font-medium">
+                              {porcentagem.toFixed(1)}% — R${" "}
+                              {c.total.toFixed(2)}
+                            </span>
+                          </li>
+                        );
+                      });
                   })()}
                 </ul>
               )}
@@ -316,28 +319,31 @@ export default function Dashboard() {
                       (acc, c) => acc + c.total,
                       0
                     );
-                    return categoriasDespesa.map((c, i) => {
-                      const porcentagem = (c.total / totalDespesa) * 100;
-                      return (
-                        <li
-                          key={`despesa-lista-${i}`}
-                          className="flex justify-between items-center border-b border-slate-100 pb-1"
-                        >
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{
-                                backgroundColor: cores[i % cores.length],
-                              }}
-                            ></span>
-                            {c.categoria}
-                          </span>
-                          <span className="text-red-600 font-medium">
-                            {porcentagem.toFixed(1)}% — R$ {c.total.toFixed(2)}
-                          </span>
-                        </li>
-                      );
-                    });
+                    return [...categoriasDespesa]
+                      .sort((a, b) => b.total - a.total) // 🔹 Ordena do maior pro menor
+                      .map((c, i) => {
+                        const porcentagem = (c.total / totalDespesa) * 100;
+                        return (
+                          <li
+                            key={`despesa-lista-${i}`}
+                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor: cores[i % cores.length],
+                                }}
+                              ></span>
+                              {c.categoria}
+                            </span>
+                            <span className="text-red-600 font-medium">
+                              {porcentagem.toFixed(1)}% — R${" "}
+                              {c.total.toFixed(2)}
+                            </span>
+                          </li>
+                        );
+                      });
                   })()}
                 </ul>
               )}
