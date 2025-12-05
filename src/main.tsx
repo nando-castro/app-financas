@@ -6,6 +6,7 @@ import Layout from "./components/layout/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
 import CategoriasPage from "./pages/CategoriasPage";
+import ChecklistMensal from "./pages/ChecklistMensal";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
@@ -43,6 +44,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute>
               <Layout>
                 <FinancasPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ NOVA ROTA: Checklist */}
+        <Route
+          path="/checklist"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ChecklistMensal />
               </Layout>
             </ProtectedRoute>
           }

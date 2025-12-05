@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
-import { BarChart3, Home, LogOut, Menu, Moon, Sun, Tag, Wallet, X } from "lucide-react";
+import { BarChart3, CalendarCheck2, Home, LogOut, Menu, Moon, Sun, Tag, Wallet, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
@@ -8,6 +8,7 @@ const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: Home },
   { name: "Financas", path: "/financas", icon: Wallet },
   { name: "Categorias", path: "/categorias", icon: Tag },
+  { name: "Checklist", path: "/checklist", icon: CalendarCheck2 },
   // { name: 'Rendas', path: '/financas/rendas', icon: TrendingUp },
   // { name: 'Despesas', path: '/financas/despesas', icon: Wallet },
   // { name: 'Categorias', path: '/categorias', icon: Tag },
