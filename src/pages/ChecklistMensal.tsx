@@ -24,10 +24,6 @@ type ChecklistResponse = {
   itens: ChecklistItem[];
 };
 
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
 function moneyBRL(v: number) {
   return `R$ ${Number(v || 0).toFixed(2)}`;
 }
@@ -40,7 +36,6 @@ export default function ChecklistMensal() {
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(new Date().getFullYear());
 
-  // alterações locais (bulk save)
   const [edits, setEdits] = useState<Record<number, boolean>>({});
 
   async function carregar(m: number, a: number) {
@@ -78,18 +73,47 @@ export default function ChecklistMensal() {
     return c;
   }, [data, edits]);
 
+  // ✅ RESUMO: total do mês + "no momento" (marcados)
   const resumo = useMemo(() => {
-    let rendas = 0;
-    let despesas = 0;
+    let totalRendas = 0;
+    let totalDespesas = 0;
+
+    let recebidas = 0; // rendas marcadas
+    let pagas = 0; // despesas marcadas
+
     let marcados = 0;
 
     for (const it of itens) {
-      if (it.tipo === "RENDA") rendas += Number(it.valor) || 0;
-      else despesas += Number(it.valor) || 0;
+      const valor = Number(it.valor) || 0;
+
+      if (it.tipo === "RENDA") {
+        totalRendas += valor;
+        if (it.checked) recebidas += valor;
+      } else {
+        totalDespesas += valor;
+        if (it.checked) pagas += valor;
+      }
+
       if (it.checked) marcados++;
     }
 
-    return { rendas, despesas, saldo: rendas - despesas, marcados, total: itens.length };
+    const saldoMesTotal = totalRendas - totalDespesas;
+    const saldoAgora = recebidas - pagas; // ✅ "quanto tenho no momento" (do mês)
+    const faltamReceber = totalRendas - recebidas;
+    const faltamPagar = totalDespesas - pagas;
+
+    return {
+      totalRendas,
+      totalDespesas,
+      saldoMesTotal,
+      recebidas,
+      pagas,
+      saldoAgora,
+      faltamReceber,
+      faltamPagar,
+      marcados,
+      total: itens.length,
+    };
   }, [itens]);
 
   function mudarMes(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -111,7 +135,6 @@ export default function ChecklistMensal() {
   async function salvar() {
     if (!data) return;
 
-    // envia só o que mudou
     const updates: { financaId: number; checked: boolean }[] = [];
     for (const it of data.itens) {
       const v = edits[it.financaId];
@@ -123,16 +146,13 @@ export default function ChecklistMensal() {
     setSaving(true);
     try {
       await api.patch(`/financas/checklist/mensal/bulk`, { mes, ano, itens: updates });
-      await carregar(mes, ano); // recarrega pra atualizar checkedAt real
+      await carregar(mes, ano);
     } finally {
       setSaving(false);
     }
   }
 
-  const mesLabel = useMemo(
-    () => dayjs().month(mes - 1).format("MMMM"),
-    [mes],
-  );
+  const mesLabel = useMemo(() => dayjs().month(mes - 1).format("MMMM"), [mes]);
 
   if (!data) return <p className="text-center mt-10">Carregando...</p>;
 
@@ -188,15 +208,22 @@ export default function ChecklistMensal() {
         </div>
       </div>
 
-      {/* Resumo mensal */}
+      {/* ✅ Resumo com "no momento" */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex items-center gap-2">
             <CheckCircle2 className="text-emerald-600" size={20} />
             <CardTitle>Rendas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-emerald-600">
-            {moneyBRL(resumo.rendas)}
+          <CardContent>
+            <div className="text-2xl font-semibold text-emerald-600">
+              {moneyBRL(resumo.totalRendas)}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Recebidas agora: <b className="text-emerald-700">{moneyBRL(resumo.recebidas)}</b>
+              {" • "}
+              Falta receber: <b>{moneyBRL(resumo.faltamReceber)}</b>
+            </div>
           </CardContent>
         </Card>
 
@@ -205,8 +232,15 @@ export default function ChecklistMensal() {
             <Circle className="text-rose-600" size={20} />
             <CardTitle>Despesas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-rose-600">
-            {moneyBRL(resumo.despesas)}
+          <CardContent>
+            <div className="text-2xl font-semibold text-rose-600">
+              {moneyBRL(resumo.totalDespesas)}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Pagas agora: <b className="text-rose-700">{moneyBRL(resumo.pagas)}</b>
+              {" • "}
+              Falta pagar: <b>{moneyBRL(resumo.faltamPagar)}</b>
+            </div>
           </CardContent>
         </Card>
 
@@ -214,8 +248,20 @@ export default function ChecklistMensal() {
           <CardHeader>
             <CardTitle>Saldo</CardTitle>
           </CardHeader>
-          <CardContent className={`text-2xl font-semibold ${resumo.saldo >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-            {moneyBRL(resumo.saldo)}
+          <CardContent>
+            <div
+              className={`text-2xl font-semibold ${
+                resumo.saldoAgora >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}
+            >
+              {moneyBRL(resumo.saldoAgora)}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Saldo do mês (total):{" "}
+              <b className={resumo.saldoMesTotal >= 0 ? "text-emerald-700" : "text-rose-700"}>
+                {moneyBRL(resumo.saldoMesTotal)}
+              </b>
+            </div>
           </CardContent>
         </Card>
 
@@ -223,8 +269,14 @@ export default function ChecklistMensal() {
           <CardHeader>
             <CardTitle>Marcados</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-slate-600">
-            {resumo.marcados}/{resumo.total}
+          <CardContent>
+            <div className="text-2xl font-semibold text-slate-600">
+              {resumo.marcados}/{resumo.total}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Progresso:{" "}
+              <b>{resumo.total ? ((resumo.marcados / resumo.total) * 100).toFixed(0) : 0}%</b>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -248,10 +300,9 @@ export default function ChecklistMensal() {
             <div className="space-y-2">
               {itens.map((it) => {
                 const isRenda = it.tipo === "RENDA";
-                const badge =
-                  isRenda
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-rose-50 text-rose-700 border-rose-200";
+                const badge = isRenda
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200";
 
                 return (
                   <div
@@ -260,9 +311,7 @@ export default function ChecklistMensal() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-24 text-sm text-slate-600">
-                        <div className="font-medium">
-                          {dayjs(it.dataLancamento).format("DD/MM")}
-                        </div>
+                        <div className="font-medium">{dayjs(it.dataLancamento).format("DD/MM")}</div>
                         <div className="text-xs opacity-80">{ano}</div>
                       </div>
 
@@ -315,11 +364,9 @@ export default function ChecklistMensal() {
         </CardContent>
       </Card>
 
-      {/* Dica */}
       <Card>
         <CardContent className="text-center py-4 text-slate-700">
-          Marque o que você <b>recebeu</b> e o que você <b>pagou</b> no mês e clique em{" "}
-          <b>Salvar</b> para gravar o status dessa competência.
+          O <b>Saldo</b> acima já vai mudando conforme você marca/desmarca (somando rendas marcadas e descontando despesas marcadas).
         </CardContent>
       </Card>
     </div>

@@ -28,6 +28,9 @@ export function FinancaDialog({
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ NOVO: checkbox "Única"
+  const [unica, setUnica] = useState(false);
+
   const [form, setForm] = useState({
     nome: "",
     valor: "",
@@ -40,20 +43,62 @@ export function FinancaDialog({
   useEffect(() => {
     if (open) {
       carregarCategorias();
+
       if (initialData) {
+        const di = initialData.dataInicio?.split("T")[0] || "";
+        const df = initialData.dataFim?.split("T")[0] || "";
+
         setForm({
           nome: initialData.nome || "",
           valor: String(initialData.valor) || "",
-          dataInicio: initialData.dataInicio?.split("T")[0] || "",
-          dataFim: initialData.dataFim?.split("T")[0] || "",
+          dataInicio: di,
+          dataFim: df,
           parcelas: initialData.parcelas ? String(initialData.parcelas) : "",
           categoriaId: initialData.categoria?.id
             ? String(initialData.categoria.id)
             : "",
         });
+
+        // ✅ se ao editar estiver com dataFim == dataInicio e sem parcelas, assume "Única"
+        setUnica(!!di && di === df && !initialData.parcelas);
+      } else {
+        // ✅ reset ao abrir pra "novo"
+        setForm({
+          nome: "",
+          valor: "",
+          dataInicio: "",
+          dataFim: "",
+          parcelas: "",
+          categoriaId: "",
+        });
+        setUnica(false);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // ✅ quando marcar Única: dataFim = dataInicio e parcelas = ""
+  useEffect(() => {
+    if (!open) return;
+    if (unica) {
+      setForm((prev) => ({
+        ...prev,
+        dataFim: prev.dataInicio || "",
+        parcelas: "",
+      }));
+    }
+  }, [unica, open]);
+
+  // ✅ se dataInicio mudar e "Única" estiver marcada, mantém dataFim igual
+  useEffect(() => {
+    if (!open) return;
+    if (unica) {
+      setForm((prev) => ({
+        ...prev,
+        dataFim: prev.dataInicio || "",
+      }));
+    }
+  }, [form.dataInicio, unica, open]);
 
   async function carregarCategorias() {
     try {
@@ -72,8 +117,10 @@ export function FinancaDialog({
         nome: form.nome,
         valor: Number(form.valor),
         dataInicio: form.dataInicio,
-        dataFim: form.dataFim || null,
-        parcelas: form.parcelas ? Number(form.parcelas) : null,
+        // ✅ se Única -> dataFim = dataInicio
+        dataFim: unica ? form.dataInicio : form.dataFim || null,
+        // ✅ se Única -> sem parcelas
+        parcelas: unica ? null : form.parcelas ? Number(form.parcelas) : null,
         tipo,
         categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
       };
@@ -145,6 +192,17 @@ export function FinancaDialog({
             </Select>
           </div>
 
+          {/* ✅ Checkbox Única (nativo, não quebra) */}
+          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={unica}
+              onChange={(e) => setUnica(e.target.checked)}
+              className="h-4 w-4 accent-slate-900"
+            />
+            <span>É única (Data fim = Data início)</span>
+          </label>
+
           {/* Datas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
@@ -161,8 +219,12 @@ export function FinancaDialog({
               <Label>Data Fim (opcional)</Label>
               <Input
                 type="date"
-                value={form.dataFim}
-                onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
+                value={unica ? form.dataInicio : form.dataFim}
+                onChange={(e) =>
+                  setForm({ ...form, dataFim: e.target.value })
+                }
+                disabled={unica}
+                className={unica ? "opacity-70" : ""}
               />
             </div>
           </div>
@@ -175,9 +237,12 @@ export function FinancaDialog({
               value={form.parcelas}
               onChange={(e) => setForm({ ...form, parcelas: e.target.value })}
               placeholder="Ex: 12"
+              disabled={unica}
+              className={unica ? "opacity-70" : ""}
             />
             <p className="text-xs text-slate-500 mt-1">
               Se informar parcelas, a data fim será calculada automaticamente.
+              {unica ? " (Desabilitado porque é única.)" : ""}
             </p>
           </div>
         </div>
