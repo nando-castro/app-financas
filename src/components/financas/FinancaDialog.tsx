@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import api from "@/services/api";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
 export function FinancaDialog({
@@ -28,8 +29,11 @@ export function FinancaDialog({
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ NOVO: checkbox "Única"
+  // Única
   const [unica, setUnica] = useState(false);
+
+  // Criar um para cada mês até a data fim
+  const [repetirAteDataFim, setRepetirAteDataFim] = useState(false);
 
   const [form, setForm] = useState({
     nome: "",
@@ -39,6 +43,8 @@ export function FinancaDialog({
     parcelas: "",
     categoriaId: "",
   });
+
+  const isEditing = !!initialData?.id;
 
   useEffect(() => {
     if (open) {
@@ -59,10 +65,9 @@ export function FinancaDialog({
             : "",
         });
 
-        // ✅ se ao editar estiver com dataFim == dataInicio e sem parcelas, assume "Única"
         setUnica(!!di && di === df && !initialData.parcelas);
+        setRepetirAteDataFim(false);
       } else {
-        // ✅ reset ao abrir pra "novo"
         setForm({
           nome: "",
           valor: "",
@@ -72,12 +77,13 @@ export function FinancaDialog({
           categoriaId: "",
         });
         setUnica(false);
+        setRepetirAteDataFim(false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // ✅ quando marcar Única: dataFim = dataInicio e parcelas = ""
+  // Quando marcar Única
   useEffect(() => {
     if (!open) return;
     if (unica) {
@@ -89,7 +95,7 @@ export function FinancaDialog({
     }
   }, [unica, open]);
 
-  // ✅ se dataInicio mudar e "Única" estiver marcada, mantém dataFim igual
+  // Se dataInicio mudar e Única estiver marcada, mantém dataFim igual
   useEffect(() => {
     if (!open) return;
     if (unica) {
@@ -109,26 +115,105 @@ export function FinancaDialog({
     }
   }
 
-  async function handleSave() {
+  // mode:
+  // "single" -> salva normal
+  // "next"   -> salva atual + próxima (apenas criação)
+  // "range"  -> cria/atualiza um para cada mês até a data fim
+  async function handleSave(mode: "single" | "next" | "range" = "single") {
     try {
       setLoading(true);
 
-      const payload = {
+      const dataInicioBase = form.dataInicio;
+      const dataFimInput = unica ? form.dataInicio : form.dataFim || null;
+      const parcelas =
+        unica || repetirAteDataFim
+          ? null
+          : form.parcelas
+          ? Number(form.parcelas)
+          : null;
+
+      const basePayload = {
         nome: form.nome,
         valor: Number(form.valor),
-        dataInicio: form.dataInicio,
-        // ✅ se Única -> dataFim = dataInicio
-        dataFim: unica ? form.dataInicio : form.dataFim || null,
-        // ✅ se Única -> sem parcelas
-        parcelas: unica ? null : form.parcelas ? Number(form.parcelas) : null,
+        dataInicio: dataInicioBase,
+        dataFim: dataFimInput,
+        parcelas,
         tipo,
         categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
       };
 
-      if (initialData?.id) {
-        await api.put(`/financas/${initialData.id}`, payload);
+      // RANGE: criar um por mês até data fim
+      if (mode === "range") {
+        if (!dataInicioBase || !form.dataFim) {
+          alert("Preencha a data inicial e a data final para repetir até a data fim.");
+          return;
+        }
+
+        const start = dayjs(dataInicioBase);
+        const end = dayjs(form.dataFim);
+
+        if (!start.isValid() || !end.isValid()) {
+          alert("Datas inválidas.");
+          return;
+        }
+
+        if (end.isBefore(start, "day")) {
+          alert("A data final deve ser maior ou igual à data inicial.");
+          return;
+        }
+
+        let current = start.clone();
+        let isFirst = true;
+
+        while (current.isBefore(end, "month") || current.isSame(end, "month")) {
+          const di = current.format("YYYY-MM-DD");
+
+          const payloadItem = {
+            ...basePayload,
+            dataInicio: di,
+            dataFim: di, // sempre igual ao início, como você pediu
+            parcelas: null,
+          };
+
+          if (isFirst && isEditing && initialData?.id) {
+            // Atualiza o registro atual para ser o primeiro mês
+            await api.put(`/financas/${initialData.id}`, payloadItem);
+          } else {
+            // Cria novos registros para os meses seguintes
+            await api.post("/financas", payloadItem);
+          }
+
+          isFirst = false;
+          current = current.add(1, "month");
+        }
       } else {
-        await api.post("/financas", payload);
+        // SINGLE / NEXT
+        if (isEditing && initialData?.id) {
+          // Edição simples
+          await api.put(`/financas/${initialData.id}`, basePayload);
+        } else {
+          // Criação normal
+          await api.post("/financas", basePayload);
+
+          // Criar também para o próximo mês (apenas criação)
+          if (mode === "next" && dataInicioBase) {
+            const nextDataInicio = dayjs(dataInicioBase)
+              .add(1, "month")
+              .format("YYYY-MM-DD");
+
+            const nextDataFim = dataFimInput
+              ? dayjs(dataFimInput).add(1, "month").format("YYYY-MM-DD")
+              : null;
+
+            const payloadNext = {
+              ...basePayload,
+              dataInicio: nextDataInicio,
+              dataFim: nextDataFim,
+            };
+
+            await api.post("/financas", payloadNext);
+          }
+        }
       }
 
       onSave();
@@ -146,7 +231,9 @@ export function FinancaDialog({
       <DialogContent className="sm:max-w-md w-[95%] rounded-lg">
         <DialogHeader>
           <DialogTitle>
-            Adicionar {tipo === "RENDA" ? "Renda" : "Despesa"}
+            {isEditing
+              ? `Editar ${tipo === "RENDA" ? "Renda" : "Despesa"}`
+              : `Adicionar ${tipo === "RENDA" ? "Renda" : "Despesa"}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -192,7 +279,7 @@ export function FinancaDialog({
             </Select>
           </div>
 
-          {/* ✅ Checkbox Única (nativo, não quebra) */}
+          {/* Única */}
           <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
             <input
               type="checkbox"
@@ -201,6 +288,17 @@ export function FinancaDialog({
               className="h-4 w-4 accent-slate-900"
             />
             <span>É única (Data fim = Data início)</span>
+          </label>
+
+          {/* Criar um para cada mês até a data fim (agora também na edição) */}
+          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={repetirAteDataFim}
+              onChange={(e) => setRepetirAteDataFim(e.target.checked)}
+              className="h-4 w-4 accent-slate-900"
+            />
+            <span>Criar um para cada mês até a data fim</span>
           </label>
 
           {/* Datas */}
@@ -226,6 +324,16 @@ export function FinancaDialog({
                 disabled={unica}
                 className={unica ? "opacity-70" : ""}
               />
+              {repetirAteDataFim && form.dataInicio && form.dataFim && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Serão gerados lançamentos mensais de {form.dataInicio} até{" "}
+                  {form.dataFim}, cada um com data fim igual à data início do
+                  mês.
+                  {isEditing
+                    ? " O lançamento atual será o do primeiro mês; os demais serão criados."
+                    : ""}
+                </p>
+              )}
             </div>
           </div>
 
@@ -237,21 +345,49 @@ export function FinancaDialog({
               value={form.parcelas}
               onChange={(e) => setForm({ ...form, parcelas: e.target.value })}
               placeholder="Ex: 12"
-              disabled={unica}
-              className={unica ? "opacity-70" : ""}
+              disabled={unica || repetirAteDataFim}
+              className={unica || repetirAteDataFim ? "opacity-70" : ""}
             />
             <p className="text-xs text-slate-500 mt-1">
               Se informar parcelas, a data fim será calculada automaticamente.
-              {unica ? " (Desabilitado porque é única.)" : ""}
+              {unica
+                ? " (Desabilitado porque é única.)"
+                : repetirAteDataFim
+                ? " (Desabilitado porque será criada uma por mês até a data fim.)"
+                : ""}
             </p>
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+        <DialogFooter className="mt-4 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+
+          {/* Salvar e criar mês seguinte – só para criação e quando não está em modo range */}
+          {!isEditing && !repetirAteDataFim && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleSave("next")}
+              disabled={loading}
+            >
+              {loading ? "Salvando..." : "Salvar e criar mês seguinte"}
+            </Button>
+          )}
+
+          {/* Salvar:
+             - se repetirAteDataFim => "range"
+             - senão => "single"
+          */}
+          <Button
+            onClick={() => handleSave(repetirAteDataFim ? "range" : "single")}
+            disabled={loading}
+          >
             {loading ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
