@@ -5,6 +5,7 @@ import { Toaster } from "sonner"; // ✅ Import correto do Sonner
 import Layout from "./components/layout/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
+import CartoesPage from "./pages/CartoesPage";
 import CategoriasPage from "./pages/CategoriasPage";
 import ChecklistMensal from "./pages/ChecklistMensal";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
@@ -78,6 +79,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute>
               <Layout>
                 <EstatisticasPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/cartoes"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <CartoesPage />
               </Layout>
             </ProtectedRoute>
           }

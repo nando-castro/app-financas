@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import api from "@/services/api";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+type FormaPagamento = "PIX" | "DINHEIRO" | "CARTAO";
 
 export function FinancaDialog({
   open,
@@ -27,6 +29,7 @@ export function FinancaDialog({
   initialData,
 }: any) {
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [cartoes, setCartoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Única
@@ -42,13 +45,26 @@ export function FinancaDialog({
     dataFim: "",
     parcelas: "",
     categoriaId: "",
+    formaPagamento: "PIX" as FormaPagamento,
+    cartaoId: "",
   });
 
   const isEditing = !!initialData?.id;
 
+  const isDespesa = tipo === "DESPESA";
+  const isCartao = isDespesa && form.formaPagamento === "CARTAO";
+
+  const canShowPagamento = isDespesa; // forma de pagamento só faz sentido para despesa (ajuste se quiser para renda também)
+
+  const cartaoLabel = useMemo(() => {
+    const c = cartoes.find((x) => String(x.id) === String(form.cartaoId));
+    return c?.nome ?? "";
+  }, [cartoes, form.cartaoId]);
+
   useEffect(() => {
     if (open) {
       carregarCategorias();
+      if (canShowPagamento) carregarCartoes();
 
       if (initialData) {
         const di = initialData.dataInicio?.split("T")[0] || "";
@@ -63,6 +79,8 @@ export function FinancaDialog({
           categoriaId: initialData.categoria?.id
             ? String(initialData.categoria.id)
             : "",
+          formaPagamento: (initialData.formaPagamento as FormaPagamento) || "PIX",
+          cartaoId: initialData.cartaoId ? String(initialData.cartaoId) : "",
         });
 
         setUnica(!!di && di === df && !initialData.parcelas);
@@ -75,6 +93,8 @@ export function FinancaDialog({
           dataFim: "",
           parcelas: "",
           categoriaId: "",
+          formaPagamento: "PIX",
+          cartaoId: "",
         });
         setUnica(false);
         setRepetirAteDataFim(false);
@@ -106,12 +126,31 @@ export function FinancaDialog({
     }
   }, [form.dataInicio, unica, open]);
 
+  // Se trocar formaPagamento e não for cartão, limpa cartão
+  useEffect(() => {
+    if (!open) return;
+    if (!isCartao && form.cartaoId) {
+      setForm((prev) => ({ ...prev, cartaoId: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.formaPagamento, open]);
+
   async function carregarCategorias() {
     try {
       const { data } = await api.get("/categorias");
       setCategorias(data);
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function carregarCartoes() {
+    try {
+      const { data } = await api.get("/cartoes");
+      setCartoes(data);
+    } catch (err) {
+      console.error(err);
+      setCartoes([]);
     }
   }
 
@@ -123,8 +162,33 @@ export function FinancaDialog({
     try {
       setLoading(true);
 
+      // validações básicas
+      if (!form.nome?.trim()) {
+        alert("Informe o nome.");
+        return;
+      }
+      if (!form.valor || Number(form.valor) <= 0) {
+        alert("Informe um valor válido.");
+        return;
+      }
+      if (!form.categoriaId) {
+        alert("Selecione uma categoria.");
+        return;
+      }
+      if (!form.dataInicio) {
+        alert("Informe a data de início.");
+        return;
+      }
+
+      // validação cartão (somente despesa)
+      if (isCartao && !form.cartaoId) {
+        alert("Selecione o cartão para pagamento.");
+        return;
+      }
+
       const dataInicioBase = form.dataInicio;
       const dataFimInput = unica ? form.dataInicio : form.dataFim || null;
+
       const parcelas =
         unica || repetirAteDataFim
           ? null
@@ -132,7 +196,7 @@ export function FinancaDialog({
           ? Number(form.parcelas)
           : null;
 
-      const basePayload = {
+      const basePayload: any = {
         nome: form.nome,
         valor: Number(form.valor),
         dataInicio: dataInicioBase,
@@ -142,10 +206,21 @@ export function FinancaDialog({
         categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
       };
 
+      // formaPagamento e cartaoId (somente se DESPESA)
+      if (canShowPagamento) {
+        basePayload.formaPagamento = form.formaPagamento;
+        basePayload.cartaoId =
+          form.formaPagamento === "CARTAO" && form.cartaoId
+            ? Number(form.cartaoId)
+            : null;
+      }
+
       // RANGE: criar um por mês até data fim
       if (mode === "range") {
         if (!dataInicioBase || !form.dataFim) {
-          alert("Preencha a data inicial e a data final para repetir até a data fim.");
+          alert(
+            "Preencha a data inicial e a data final para repetir até a data fim."
+          );
           return;
         }
 
@@ -171,15 +246,13 @@ export function FinancaDialog({
           const payloadItem = {
             ...basePayload,
             dataInicio: di,
-            dataFim: di, // sempre igual ao início, como você pediu
+            dataFim: di, // sempre igual ao início
             parcelas: null,
           };
 
           if (isFirst && isEditing && initialData?.id) {
-            // Atualiza o registro atual para ser o primeiro mês
             await api.put(`/financas/${initialData.id}`, payloadItem);
           } else {
-            // Cria novos registros para os meses seguintes
             await api.post("/financas", payloadItem);
           }
 
@@ -189,10 +262,8 @@ export function FinancaDialog({
       } else {
         // SINGLE / NEXT
         if (isEditing && initialData?.id) {
-          // Edição simples
           await api.put(`/financas/${initialData.id}`, basePayload);
         } else {
-          // Criação normal
           await api.post("/financas", basePayload);
 
           // Criar também para o próximo mês (apenas criação)
@@ -279,6 +350,65 @@ export function FinancaDialog({
             </Select>
           </div>
 
+          {/* Forma de pagamento (somente DESPESA) */}
+          {canShowPagamento && (
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select
+                value={form.formaPagamento}
+                onValueChange={(v: FormaPagamento) =>
+                  setForm((prev) => ({ ...prev, formaPagamento: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                  <SelectItem value="CARTAO">Cartão</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {isCartao && (
+                <>
+                  <div className="mt-3">
+                    <Label>Cartão</Label>
+                    <Select
+                      value={form.cartaoId}
+                      onValueChange={(v) =>
+                        setForm((prev) => ({ ...prev, cartaoId: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cartão" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cartoes.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {!!cartaoLabel && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Será lançado no cartão: <span className="font-medium">{cartaoLabel}</span>
+                      </p>
+                    )}
+
+                    {!cartoes.length && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Nenhum cartão cadastrado. Cadastre um cartão na tela de cartões.
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Única */}
           <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
             <input
@@ -290,7 +420,7 @@ export function FinancaDialog({
             <span>É única (Data fim = Data início)</span>
           </label>
 
-          {/* Criar um para cada mês até a data fim (agora também na edição) */}
+          {/* Criar um para cada mês até a data fim */}
           <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
             <input
               type="checkbox"
@@ -368,7 +498,6 @@ export function FinancaDialog({
             Cancelar
           </Button>
 
-          {/* Salvar e criar mês seguinte – só para criação e quando não está em modo range */}
           {!isEditing && !repetirAteDataFim && (
             <Button
               type="button"
@@ -380,10 +509,6 @@ export function FinancaDialog({
             </Button>
           )}
 
-          {/* Salvar:
-             - se repetirAteDataFim => "range"
-             - senão => "single"
-          */}
           <Button
             onClick={() => handleSave(repetirAteDataFim ? "range" : "single")}
             disabled={loading}
