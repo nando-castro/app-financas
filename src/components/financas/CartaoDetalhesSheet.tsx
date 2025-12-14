@@ -25,13 +25,36 @@ function formatBRL(value: number) {
   }).format(value);
 }
 
+function ymdToday() {
+  const hoje = new Date();
+  const yyyy = hoje.getFullYear();
+  const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+  const dd = String(hoje.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function addMonthsToYMD(ymd: string, add: number) {
+  // ymd: YYYY-MM-DD
+  const [y, m, d] = ymd.split("-").map(Number);
+  // usa UTC para evitar problemas de timezone
+  const dt = new Date(Date.UTC(y, m - 1 + add, 1, 0, 0, 0));
+  const yy = dt.getUTCFullYear();
+  const mm = dt.getUTCMonth() + 1;
+
+  // mantém o dia escolhido, mas clamp no último dia do mês destino
+  const lastDay = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+  const dd = Math.min(d, lastDay);
+
+  return `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}
+
 type Props = {
   open: boolean;
   setOpen: (v: boolean) => void;
   cartaoId?: number | null;
   mes: number;
   ano: number;
-  onChanged?: () => void; // para refresh da lista
+  onChanged?: () => void;
 };
 
 export function CartaoDetalhesSheet({
@@ -53,11 +76,15 @@ export function CartaoDetalhesSheet({
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [openLanc, setOpenLanc] = useState<null | "COMPRA" | "PAGAMENTO">(null);
+
   const [lancForm, setLancForm] = useState({
     descricao: "",
-    data: "",
+    data: ymdToday(),
     valor: "",
+    parcelado: false,
+    parcelas: "2",
   });
+
   const [savingLanc, setSavingLanc] = useState(false);
 
   async function carregar() {
@@ -82,14 +109,75 @@ export function CartaoDetalhesSheet({
     }
   }
 
+  useEffect(() => {
+    if (!open) return;
+    carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cartaoId, mes, ano]);
+
+  const resumo = useMemo(() => {
+    if (!det?.fatura) return null;
+    return {
+      limiteVigente: Number(det.fatura.limiteVigente || 0),
+      limiteUtilizado: Number(det.fatura.limiteUtilizado || 0),
+      valorFatura: Number(det.fatura.valorFatura || 0),
+      emAberto: Number(det.fatura.emAberto || 0),
+      totalPago: Number(det.fatura.totalPago || 0),
+      disponivel: Number(det.fatura.limiteDisponivel || 0),
+    };
+  }, [det]);
+
+  function resetLancForm() {
+    setLancForm({
+      descricao: "",
+      data: ymdToday(),
+      valor: "",
+      parcelado: false,
+      parcelas: "2",
+    });
+  }
+
   function abrirEditarLanc(l: any) {
     setEditLanc(l);
-    setOpenLanc(l.tipo); // reutiliza o mesmo Dialog
+    setOpenLanc(l.tipo);
+
     setLancForm({
       descricao: l.descricao ?? "",
-      data: String(l.data).slice(0, 10), // garante YYYY-MM-DD
+      data: String(l.data).slice(0, 10),
       valor: String(Number(l.valor || 0)),
+      parcelado: false, // edição individual: não mexe em parcelamento
+      parcelas: "2",
     });
+  }
+
+  async function salvarAjustes() {
+    if (!cartaoId) return;
+
+    const payload: any = { mes, ano };
+    payload.limiteMes = limiteMes.trim() === "" ? null : Number(limiteMes);
+    payload.ajusteFatura =
+      ajusteFatura.trim() === "" ? 0 : Number(ajusteFatura);
+
+    if (Number.isNaN(payload.limiteMes) && payload.limiteMes !== null) {
+      alert("Limite do mês inválido.");
+      return;
+    }
+    if (Number.isNaN(payload.ajusteFatura)) {
+      alert("Ajuste da fatura inválido.");
+      return;
+    }
+
+    try {
+      setSavingAjustes(true);
+      await api.patch(`/cartoes/${cartaoId}/fatura`, payload);
+      await carregar();
+      onChanged?.();
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao salvar ajustes do mês.");
+    } finally {
+      setSavingAjustes(false);
+    }
   }
 
   async function salvarEdicaoLancamento() {
@@ -108,7 +196,6 @@ export function CartaoDetalhesSheet({
       descricao: lancForm.descricao?.trim() || null,
       data: lancForm.data,
       valor: Number(lancForm.valor),
-      // normalmente você não troca tipo na edição; se quiser permitir, inclua aqui
     };
 
     try {
@@ -144,66 +231,6 @@ export function CartaoDetalhesSheet({
     }
   }
 
-  useEffect(() => {
-    if (!open) return;
-    carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, cartaoId, mes, ano]);
-
-  const resumo = useMemo(() => {
-    if (!det?.fatura) return null;
-    return {
-      limiteVigente: Number(det.fatura.limiteVigente || 0),
-      limiteUtilizado: Number(det.fatura.limiteUtilizado || 0),
-      valorFatura: Number(det.fatura.valorFatura || 0),
-      emAberto: Number(det.fatura.emAberto || 0),
-      totalPago: Number(det.fatura.totalPago || 0),
-      disponivel: Number(det.fatura.limiteDisponivel || 0),
-    };
-  }, [det]);
-
-  async function salvarAjustes() {
-    if (!cartaoId) return;
-
-    const payload: any = { mes, ano };
-
-    // limiteMes pode ser vazio => null (volta pro fallback automático)
-    if (limiteMes.trim() === "") payload.limiteMes = null;
-    else payload.limiteMes = Number(limiteMes);
-
-    if (ajusteFatura.trim() === "") payload.ajusteFatura = 0;
-    else payload.ajusteFatura = Number(ajusteFatura);
-
-    if (Number.isNaN(payload.limiteMes) && payload.limiteMes !== null) {
-      alert("Limite do mês inválido.");
-      return;
-    }
-    if (Number.isNaN(payload.ajusteFatura)) {
-      alert("Ajuste da fatura inválido.");
-      return;
-    }
-
-    try {
-      setSavingAjustes(true);
-      await api.patch(`/cartoes/${cartaoId}/fatura`, payload);
-      await carregar();
-      onChanged?.();
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar ajustes do mês.");
-    } finally {
-      setSavingAjustes(false);
-    }
-  }
-
-  function resetLancForm() {
-    const hoje = new Date();
-    const yyyy = hoje.getFullYear();
-    const mm = String(hoje.getMonth() + 1).padStart(2, "0");
-    const dd = String(hoje.getDate()).padStart(2, "0");
-    setLancForm({ descricao: "", data: `${yyyy}-${mm}-${dd}`, valor: "" });
-  }
-
   async function salvarLancamento() {
     if (!cartaoId || !openLanc) return;
 
@@ -211,23 +238,75 @@ export function CartaoDetalhesSheet({
       alert("Informe a data.");
       return;
     }
-    if (!lancForm.valor || Number(lancForm.valor) <= 0) {
+    const valor = Number(lancForm.valor);
+    if (!lancForm.valor || Number.isNaN(valor) || valor <= 0) {
       alert("Informe um valor válido.");
       return;
     }
 
-    const payload = {
-      mes,
-      ano,
-      tipo: openLanc,
-      descricao: lancForm.descricao?.trim() || null,
-      data: lancForm.data,
-      valor: Number(lancForm.valor),
-    };
+    const baseDescricao = lancForm.descricao?.trim() || null;
 
     try {
       setSavingLanc(true);
-      await api.post(`/cartoes/${cartaoId}/lancamentos`, payload);
+
+      // ✅ PAGAMENTO: mantém simples
+      if (openLanc === "PAGAMENTO") {
+        await api.post(`/cartoes/${cartaoId}/lancamentos`, {
+          mes,
+          ano,
+          tipo: "PAGAMENTO",
+          descricao: baseDescricao,
+          data: lancForm.data,
+          valor,
+        });
+      } else {
+        // ✅ COMPRA: parcelamento opcional
+        const parcelado = !!lancForm.parcelado;
+        const parcelasN = parcelado
+          ? Math.max(2, Number(lancForm.parcelas || 2))
+          : 1;
+
+        if (
+          parcelado &&
+          (Number.isNaN(parcelasN) || parcelasN < 2 || parcelasN > 36)
+        ) {
+          alert("Quantidade de parcelas inválida (2 a 36).");
+          return;
+        }
+
+        const valorPorParcela = parcelado
+          ? Number((valor / parcelasN).toFixed(2))
+          : valor;
+
+        // Para evitar diferença de centavos, joga o ajuste na última parcela
+        const totalArred = parcelado
+          ? Number((valorPorParcela * parcelasN).toFixed(2))
+          : valor;
+        const diff = parcelado ? Number((valor - totalArred).toFixed(2)) : 0;
+
+        for (let i = 1; i <= parcelasN; i++) {
+          const dataParcela = addMonthsToYMD(lancForm.data, i - 1);
+          const descParcela =
+            parcelado && baseDescricao
+              ? `${baseDescricao} - ${i}/${parcelasN}`
+              : baseDescricao;
+
+          const valorFinal =
+            parcelado && i === parcelasN
+              ? Number((valorPorParcela + diff).toFixed(2))
+              : valorPorParcela;
+
+          await api.post(`/cartoes/${cartaoId}/lancamentos`, {
+            mes,
+            ano,
+            tipo: "COMPRA",
+            descricao: descParcela,
+            data: dataParcela,
+            valor: valorFinal,
+          });
+        }
+      }
+
       setOpenLanc(null);
       await carregar();
       onChanged?.();
@@ -447,7 +526,7 @@ export function CartaoDetalhesSheet({
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {l.data}
+                            {String(l.data).slice(0, 10)}
                           </p>
                         </div>
 
@@ -494,7 +573,6 @@ export function CartaoDetalhesSheet({
         </SheetContent>
       </Sheet>
 
-      {/* Dialog simples para compra/pagamento */}
       <DialogLancamento
         open={!!openLanc}
         setOpen={(v: any) => {
@@ -534,6 +612,8 @@ function DialogLancamento({
       : isEditing
       ? "Editar pagamento"
       : "Registrar pagamento";
+
+  const showParcelas = tipo === "COMPRA" && !isEditing;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -577,10 +657,52 @@ function DialogLancamento({
             </div>
           </div>
 
+          {showParcelas && (
+            <div className="rounded-xl border bg-muted/10 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Parcelado?</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cria 1 compra por mês com “1/N, 2/N...”
+                  </p>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={!!form.parcelado}
+                  onChange={(e) =>
+                    setForm({ ...form, parcelado: e.target.checked })
+                  }
+                  className="h-4 w-4"
+                />
+              </div>
+
+              {form.parcelado && (
+                <div>
+                  <Label>Quantidade de parcelas</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={36}
+                    value={form.parcelas}
+                    onChange={(e) =>
+                      setForm({ ...form, parcelas: e.target.value })
+                    }
+                    placeholder="Ex: 3"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O valor será dividido igualmente e ajustado na última
+                    parcela se houver diferença de centavos.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             {tipo === "PAGAMENTO"
               ? "Pagamentos reduzem o valor em aberto e liberam limite automaticamente."
-              : "Compras entram na fatura do mês selecionado."}
+              : "Compras entram na fatura conforme a regra de fechamento/vencimento do cartão."}
           </p>
         </div>
 
