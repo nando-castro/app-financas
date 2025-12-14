@@ -13,7 +13,10 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 function pct(used: number, limit: number) {
@@ -22,12 +25,29 @@ function pct(used: number, limit: number) {
   return Math.max(0, Math.min(100, p));
 }
 
+type SaldoCartaoItem = {
+  cartaoId: number;
+  nome: string;
+  limite: number; // limite vigente no período
+  limiteUtilizado: number; // acumulado (faturas comunicando)
+  limiteDisponivel: number;
+  faturaAtual: number; // total do mês (compras + ajuste)
+  emAbertoMes: number; // saldo em aberto do mês
+  mes: number;
+  ano: number;
+
+  // campos opcionais se sua API também enviar
+  limiteBase?: number;
+  diaFechamento?: number | null;
+  diaVencimento?: number | null;
+};
+
 export default function CartoesPage() {
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
 
-  const [saldos, setSaldos] = useState<any[]>([]);
+  const [saldos, setSaldos] = useState<SaldoCartaoItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -69,11 +89,29 @@ export default function CartoesPage() {
     [],
   );
 
+  // Agora o resumo do mês usa o acumulado (limiteUtilizado/limiteDisponivel)
   const resumo = useMemo(() => {
     const limite = saldos.reduce((acc, c) => acc + Number(c.limite || 0), 0);
-    const fatura = saldos.reduce((acc, c) => acc + Number(c.fatura || 0), 0);
-    const disponivel = Math.max(0, limite - fatura);
-    return { limite, fatura, disponivel };
+    const utilizado = saldos.reduce(
+      (acc, c) => acc + Number(c.limiteUtilizado || 0),
+      0,
+    );
+    const disponivel = saldos.reduce(
+      (acc, c) => acc + Number(c.limiteDisponivel || 0),
+      0,
+    );
+
+    // extras úteis
+    const emAbertoMes = saldos.reduce(
+      (acc, c) => acc + Number(c.emAbertoMes || 0),
+      0,
+    );
+    const faturaAtual = saldos.reduce(
+      (acc, c) => acc + Number(c.faturaAtual || 0),
+      0,
+    );
+
+    return { limite, utilizado, disponivel, emAbertoMes, faturaAtual };
   }, [saldos]);
 
   function abrirNovo() {
@@ -81,11 +119,11 @@ export default function CartoesPage() {
     setOpenDialog(true);
   }
 
-  function abrirEditar(c: any) {
+  function abrirEditar(c: SaldoCartaoItem) {
     setEditingCartao({
       id: c.cartaoId,
       nome: c.nome,
-      limite: c.limiteBase ?? c.limite, // se sua API de saldos não devolver limiteBase, mantém limite
+      limite: c.limiteBase ?? c.limite,
       diaFechamento: c.diaFechamento,
       diaVencimento: c.diaVencimento,
     });
@@ -109,7 +147,12 @@ export default function CartoesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={buscar} disabled={loading} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={buscar}
+            disabled={loading}
+            className="gap-2"
+          >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Atualizar
           </Button>
@@ -130,7 +173,9 @@ export default function CartoesPage() {
             </div>
             <div>
               <p className="text-sm font-medium leading-none">Período</p>
-              <p className="text-xs text-muted-foreground">Selecione mês e ano para ver a fatura</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione mês e ano para ver a fatura
+              </p>
             </div>
           </div>
 
@@ -157,11 +202,13 @@ export default function CartoesPage() {
                 onChange={(e) => setAno(Number(e.target.value))}
                 className="bg-transparent text-sm outline-none"
               >
-                {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
+                {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map(
+                  (y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
 
@@ -187,9 +234,9 @@ export default function CartoesPage() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-2">
                 <ArrowDownRight size={16} />
-                Fatura total
+                Utilizado (acumulado)
               </span>
-              <span className="font-medium">{formatBRL(resumo.fatura)}</span>
+              <span className="font-medium">{formatBRL(resumo.utilizado)}</span>
             </div>
 
             <div className="h-px bg-border my-1" />
@@ -202,14 +249,19 @@ export default function CartoesPage() {
             <div className="mt-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>Uso do limite</span>
-                <span>{pct(resumo.fatura, resumo.limite).toFixed(0)}%</span>
+                <span>{pct(resumo.utilizado, resumo.limite).toFixed(0)}%</span>
               </div>
               <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-2 rounded-full bg-primary transition-all"
-                  style={{ width: `${pct(resumo.fatura, resumo.limite)}%` }}
+                  style={{ width: `${pct(resumo.utilizado, resumo.limite)}%` }}
                 />
               </div>
+            </div>
+
+            <div className="mt-2 text-xs text-muted-foreground">
+              Em aberto no mês: {formatBRL(resumo.emAbertoMes)} • Total do mês:{" "}
+              {formatBRL(resumo.faturaAtual)}
             </div>
           </div>
         </div>
@@ -232,9 +284,11 @@ export default function CartoesPage() {
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {saldos.map((c) => {
             const limite = Number(c.limite || 0);
-            const fatura = Number(c.fatura || 0);
+            const utilizado = Number(c.limiteUtilizado || 0);
             const disponivel = Number(c.limiteDisponivel || 0);
-            const percent = pct(fatura, limite);
+            const emAbertoMes = Number(c.emAbertoMes || 0);
+
+            const percent = pct(utilizado, limite);
 
             return (
               <div
@@ -253,13 +307,15 @@ export default function CartoesPage() {
                         {c.nome}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Fatura {String(mes).padStart(2, "0")}/{ano}
+                        {String(mes).padStart(2, "0")}/{ano}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground">{percent.toFixed(0)}%</div>
+                    <div className="text-xs text-muted-foreground">
+                      {percent.toFixed(0)}%
+                    </div>
 
                     <Button
                       type="button"
@@ -278,12 +334,15 @@ export default function CartoesPage() {
 
                 <div className="mt-3">
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} />
+                    <div
+                      className="h-2 rounded-full bg-primary transition-all"
+                      style={{ width: `${percent}%` }}
+                    />
                   </div>
                   <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Uso do limite</span>
+                    <span>Uso do limite (acumulado)</span>
                     <span>
-                      {formatBRL(fatura)} / {formatBRL(limite)}
+                      {formatBRL(utilizado)} / {formatBRL(limite)}
                     </span>
                   </div>
                 </div>
@@ -295,8 +354,8 @@ export default function CartoesPage() {
                   </div>
 
                   <div className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Fatura</p>
-                    <p className="font-medium mt-1">{formatBRL(fatura)}</p>
+                    <p className="text-xs text-muted-foreground">Em aberto (mês)</p>
+                    <p className="font-medium mt-1">{formatBRL(emAbertoMes)}</p>
                   </div>
 
                   <div className="rounded-xl border bg-muted/20 p-3">

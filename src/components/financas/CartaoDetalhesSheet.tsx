@@ -15,11 +15,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import api from "@/services/api";
-import { CreditCard, Plus, Save, Wallet } from "lucide-react";
+import { CreditCard, Pencil, Plus, Save, Trash2, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 type Props = {
@@ -31,13 +34,23 @@ type Props = {
   onChanged?: () => void; // para refresh da lista
 };
 
-export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChanged }: Props) {
+export function CartaoDetalhesSheet({
+  open,
+  setOpen,
+  cartaoId,
+  mes,
+  ano,
+  onChanged,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [det, setDet] = useState<any>(null);
 
   const [savingAjustes, setSavingAjustes] = useState(false);
   const [limiteMes, setLimiteMes] = useState<string>("");
   const [ajusteFatura, setAjusteFatura] = useState<string>("");
+
+  const [editLanc, setEditLanc] = useState<any | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [openLanc, setOpenLanc] = useState<null | "COMPRA" | "PAGAMENTO">(null);
   const [lancForm, setLancForm] = useState({
@@ -56,12 +69,78 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
       });
       setDet(data);
 
-      setLimiteMes(data?.fatura?.limiteMes != null ? String(data.fatura.limiteMes) : "");
+      setLimiteMes(
+        data?.fatura?.limiteMes != null ? String(data.fatura.limiteMes) : ""
+      );
       setAjusteFatura(
-        data?.fatura?.ajusteFatura != null ? String(data.fatura.ajusteFatura) : "0",
+        data?.fatura?.ajusteFatura != null
+          ? String(data.fatura.ajusteFatura)
+          : "0"
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  function abrirEditarLanc(l: any) {
+    setEditLanc(l);
+    setOpenLanc(l.tipo); // reutiliza o mesmo Dialog
+    setLancForm({
+      descricao: l.descricao ?? "",
+      data: String(l.data).slice(0, 10), // garante YYYY-MM-DD
+      valor: String(Number(l.valor || 0)),
+    });
+  }
+
+  async function salvarEdicaoLancamento() {
+    if (!cartaoId || !editLanc) return;
+
+    if (!lancForm.data) {
+      alert("Informe a data.");
+      return;
+    }
+    if (!lancForm.valor || Number(lancForm.valor) <= 0) {
+      alert("Informe um valor válido.");
+      return;
+    }
+
+    const payload = {
+      descricao: lancForm.descricao?.trim() || null,
+      data: lancForm.data,
+      valor: Number(lancForm.valor),
+      // normalmente você não troca tipo na edição; se quiser permitir, inclua aqui
+    };
+
+    try {
+      setSavingEdit(true);
+      await api.patch(
+        `/cartoes/${cartaoId}/lancamentos/${editLanc.id}`,
+        payload
+      );
+      setEditLanc(null);
+      setOpenLanc(null);
+      await carregar();
+      onChanged?.();
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao editar lançamento.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function apagarLancamento(lancamentoId: number) {
+    if (!cartaoId) return;
+    const ok = confirm("Deseja realmente apagar este lançamento?");
+    if (!ok) return;
+
+    try {
+      await api.delete(`/cartoes/${cartaoId}/lancamentos/${lancamentoId}`);
+      await carregar();
+      onChanged?.();
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao apagar lançamento.");
     }
   }
 
@@ -75,6 +154,7 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
     if (!det?.fatura) return null;
     return {
       limiteVigente: Number(det.fatura.limiteVigente || 0),
+      limiteUtilizado: Number(det.fatura.limiteUtilizado || 0),
       valorFatura: Number(det.fatura.valorFatura || 0),
       emAberto: Number(det.fatura.emAberto || 0),
       totalPago: Number(det.fatura.totalPago || 0),
@@ -165,7 +245,8 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader className="mb-4">
             <SheetTitle>
-              {det?.cartao?.nome ?? "Cartão"} • {String(mes).padStart(2, "0")}/{ano}
+              {det?.cartao?.nome ?? "Cartão"} • {String(mes).padStart(2, "0")}/
+              {ano}
             </SheetTitle>
             {det?.cartao && (
               <p className="text-sm text-muted-foreground mt-1">
@@ -185,7 +266,9 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CreditCard size={16} /> Limite vigente
                   </div>
-                  <div className="text-lg font-semibold mt-2">{formatBRL(resumo.limiteVigente)}</div>
+                  <div className="text-lg font-semibold mt-2">
+                    {formatBRL(resumo.limiteVigente)}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     (base: {formatBRL(Number(det.cartao?.limiteBase || 0))})
                   </div>
@@ -195,9 +278,11 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Wallet size={16} /> Disponível
                   </div>
-                  <div className="text-lg font-semibold mt-2">{formatBRL(resumo.disponivel)}</div>
+                  <div className="text-lg font-semibold mt-2">
+                    {formatBRL(resumo.disponivel)}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Em aberto: {formatBRL(resumo.emAberto)}
+                    Utilizado (acumulado): {formatBRL(resumo.limiteUtilizado)}
                   </div>
                 </div>
               </div>
@@ -211,27 +296,41 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Total compras</p>
-                    <p className="font-semibold">{formatBRL(Number(det.fatura.totalCompras || 0))}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total compras
+                    </p>
+                    <p className="font-semibold">
+                      {formatBRL(Number(det.fatura.totalCompras || 0))}
+                    </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
                   <div className="rounded-xl border bg-muted/20 p-3">
                     <p className="text-xs text-muted-foreground">Ajuste</p>
-                    <p className="font-medium mt-1">{formatBRL(Number(det.fatura.ajusteFatura || 0))}</p>
+                    <p className="font-medium mt-1">
+                      {formatBRL(Number(det.fatura.ajusteFatura || 0))}
+                    </p>
                   </div>
                   <div className="rounded-xl border bg-muted/20 p-3">
                     <p className="text-xs text-muted-foreground">Pago</p>
-                    <p className="font-medium mt-1">{formatBRL(Number(det.fatura.totalPago || 0))}</p>
+                    <p className="font-medium mt-1">
+                      {formatBRL(Number(det.fatura.totalPago || 0))}
+                    </p>
                   </div>
                   <div className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Valor fatura</p>
-                    <p className="font-medium mt-1">{formatBRL(Number(det.fatura.valorFatura || 0))}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Valor fatura
+                    </p>
+                    <p className="font-medium mt-1">
+                      {formatBRL(Number(det.fatura.valorFatura || 0))}
+                    </p>
                   </div>
                   <div className="rounded-xl border bg-muted/20 p-3">
                     <p className="text-xs text-muted-foreground">Em aberto</p>
-                    <p className="font-semibold mt-1">{formatBRL(Number(det.fatura.emAberto || 0))}</p>
+                    <p className="font-semibold mt-1">
+                      {formatBRL(Number(det.fatura.emAberto || 0))}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -245,8 +344,13 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                       Defina limite do mês (snapshot) e ajuste manual da fatura.
                     </p>
                   </div>
-                  <Button onClick={salvarAjustes} disabled={savingAjustes} className="gap-2">
-                    <Save size={16} /> {savingAjustes ? "Salvando..." : "Salvar"}
+                  <Button
+                    onClick={salvarAjustes}
+                    disabled={savingAjustes}
+                    className="gap-2"
+                  >
+                    <Save size={16} />{" "}
+                    {savingAjustes ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
 
@@ -260,7 +364,8 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                       placeholder="Vazio = automático"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Se vazio, usa o último limite definido anteriormente ou o limite base.
+                      Se vazio, usa o último limite definido anteriormente ou o
+                      limite base.
                     </p>
                   </div>
 
@@ -285,15 +390,18 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                   variant="outline"
                   className="gap-2"
                   onClick={() => {
+                    setEditLanc(null);
                     resetLancForm();
                     setOpenLanc("COMPRA");
                   }}
                 >
                   <Plus size={16} /> Adicionar compra
                 </Button>
+
                 <Button
                   className="gap-2"
                   onClick={() => {
+                    setEditLanc(null);
                     resetLancForm();
                     setOpenLanc("PAGAMENTO");
                   }}
@@ -334,16 +442,47 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
                               {l.tipo}
                             </span>
                             <span className="text-sm font-medium truncate">
-                              {l.descricao || (l.tipo === "COMPRA" ? "Compra" : "Pagamento")}
+                              {l.descricao ||
+                                (l.tipo === "COMPRA" ? "Compra" : "Pagamento")}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">{l.data}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {l.data}
+                          </p>
                         </div>
 
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">
-                            {formatBRL(Number(l.valor || 0))}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">
+                              {formatBRL(Number(l.valor || 0))}
+                            </p>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirEditarLanc(l);
+                            }}
+                            title="Editar lançamento"
+                          >
+                            <Pencil size={16} />
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              apagarLancamento(l.id);
+                            }}
+                            title="Apagar lançamento"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
                         </div>
                       </div>
                     ))
@@ -358,12 +497,18 @@ export function CartaoDetalhesSheet({ open, setOpen, cartaoId, mes, ano, onChang
       {/* Dialog simples para compra/pagamento */}
       <DialogLancamento
         open={!!openLanc}
-        setOpen={(v: any) => setOpenLanc(v ? openLanc : null)}
+        setOpen={(v: any) => {
+          if (!v) {
+            setOpenLanc(null);
+            setEditLanc(null);
+          }
+        }}
         tipo={openLanc}
         form={lancForm}
         setForm={setLancForm}
-        saving={savingLanc}
-        onSave={salvarLancamento}
+        saving={savingLanc || savingEdit}
+        onSave={editLanc ? salvarEdicaoLancamento : salvarLancamento}
+        isEditing={!!editLanc}
       />
     </>
   );
@@ -377,79 +522,87 @@ function DialogLancamento({
   setForm,
   saving,
   onSave,
+  isEditing,
 }: any) {
   if (!tipo) return null;
 
-  const titulo = tipo === "COMPRA" ? "Adicionar compra" : "Registrar pagamento";
+  const titulo =
+    tipo === "COMPRA"
+      ? isEditing
+        ? "Editar compra"
+        : "Adicionar compra"
+      : isEditing
+      ? "Editar pagamento"
+      : "Registrar pagamento";
 
   return (
-    <div>
-      {/* reuse do seu Dialog */}
-      <div className="hidden" />
-      {/* Importando o Dialog do shadcn (mesmo do seu CartoesDialog) */}
-      {/* Como você já tem o Dialog, use diretamente aqui */}
-      {/* Para não duplicar imports, mantive simples com JSX inline */}
-      {/* Você pode mover para um arquivo próprio depois */}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-md w-[95%] rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{titulo}</DialogTitle>
+        </DialogHeader>
 
-      {/* @ts-ignore */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        {/* @ts-ignore */}
-        <DialogContent className="sm:max-w-md w-[95%] rounded-2xl">
-          {/* @ts-ignore */}
-          <DialogHeader>
-            {/* @ts-ignore */}
-            <DialogTitle>{titulo}</DialogTitle>
-          </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Descrição (opcional)</Label>
+            <Input
+              value={form.descricao}
+              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              placeholder={
+                tipo === "COMPRA"
+                  ? "Ex: Mercado, Shopee..."
+                  : "Ex: Pagamento fatura"
+              }
+            />
+          </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <Label>Descrição (opcional)</Label>
+              <Label>Data</Label>
               <Input
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                placeholder={tipo === "COMPRA" ? "Ex: Mercado, Shopee..." : "Ex: Pagamento fatura"}
+                type="date"
+                value={form.data}
+                onChange={(e) => setForm({ ...form, data: e.target.value })}
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  value={form.data}
-                  onChange={(e) => setForm({ ...form, data: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <Label>Valor</Label>
-                <Input
-                  type="number"
-                  value={form.valor}
-                  onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                  placeholder="Ex: 120.50"
-                />
-              </div>
+            <div>
+              <Label>Valor</Label>
+              <Input
+                type="number"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                placeholder="Ex: 120.50"
+              />
             </div>
-
-            <p className="text-xs text-muted-foreground">
-              {tipo === "PAGAMENTO"
-                ? "Pagamentos reduzem o valor em aberto e liberam limite automaticamente."
-                : "Compras entram na fatura do mês selecionado."}
-            </p>
           </div>
 
-          {/* @ts-ignore */}
-          <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={onSave} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <p className="text-xs text-muted-foreground">
+            {tipo === "PAGAMENTO"
+              ? "Pagamentos reduzem o valor em aberto e liberam limite automaticamente."
+              : "Compras entram na fatura do mês selecionado."}
+          </p>
+        </div>
+
+        <DialogFooter className="mt-4 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+          <Button onClick={onSave} disabled={saving}>
+            {saving
+              ? isEditing
+                ? "Atualizando..."
+                : "Salvando..."
+              : isEditing
+              ? "Atualizar"
+              : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
