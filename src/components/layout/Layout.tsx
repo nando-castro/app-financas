@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
-import { BarChart3, CalendarCheck2, CreditCard, Home, LogOut, Menu, Moon, Sun, Tag, Wallet, X } from "lucide-react";
+import { BarChart3, CalendarCheck2, ChartLine, CreditCard, Home, LogOut, Menu, Moon, Sun, Tag, Wallet, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
@@ -14,6 +14,7 @@ const menuItems = [
   // { name: 'Categorias', path: '/categorias', icon: Tag },
   { name: "Estatísticas", path: "/estatisticas", icon: BarChart3 },
   { name: "Cartões", path: "/cartoes", icon: CreditCard },
+  { name: "Investimentos", path: "/investimentos", icon: ChartLine },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

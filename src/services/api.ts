@@ -1,27 +1,75 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 // services/api.ts (trecho)
 export const cartoesApi = {
-  listar: () => api.get('/cartoes'),
-  criar: (payload: { nome: string; limite: number }) => api.post('/cartoes', payload),
-  saldos: (mes: number, ano: number) => api.get("/cartoes/saldos", { params: { mes, ano } }),
+  listar: () => api.get("/cartoes"),
+  criar: (payload: { nome: string; limite: number }) =>
+    api.post("/cartoes", payload),
+  saldos: (mes: number, ano: number) =>
+    api.get("/cartoes/saldos", { params: { mes, ano } }),
   detalhesFatura: (cartaoId: number, mes: number, ano: number) =>
     api.get(`/cartoes/${cartaoId}/fatura`, { params: { mes, ano } }),
-  ajustarFatura: (cartaoId: number, payload: any) => api.patch(`/cartoes/${cartaoId}/fatura`, payload),
-  atualizarCartao: (cartaoId: number, payload: any) => api.patch(`/cartoes/${cartaoId}`, payload),
-  criarLancamento: (cartaoId: number, payload: any) => api.post(`/cartoes/${cartaoId}/lancamentos`, payload),
+  ajustarFatura: (cartaoId: number, payload: any) =>
+    api.patch(`/cartoes/${cartaoId}/fatura`, payload),
+  atualizarCartao: (cartaoId: number, payload: any) =>
+    api.patch(`/cartoes/${cartaoId}`, payload),
+  criarLancamento: (cartaoId: number, payload: any) =>
+    api.post(`/cartoes/${cartaoId}/lancamentos`, payload),
 };
 
+export const investimentosApi = {
+  resumo: (mes: number, ano: number) =>
+    api.get("/investimentos/resumo", {
+      params: { mes, ano },
+    }),
 
+  create: (payload: {
+    nome: string;
+    valorInicial: number;
+    taxaMensal: number;
+    aporteMensal?: number;
+    dataInicio: string;
+  }) => api.post("/investimentos", payload),
+
+  update: (
+    id: number,
+    payload: {
+      nome?: string;
+      valorInicial?: number;
+      taxaMensal?: number;
+      dataInicio?: string;
+    },
+  ) => api.put(`/investimentos/${id}`, payload),
+
+  listarAportes: (id: number) => api.get(`/investimentos/${id}/aportes`),
+
+  alterarAporte: (
+    id: number,
+    payload: {
+      valorMensal: number;
+      dataInicio: string;
+    },
+  ) => api.patch(`/investimentos/${id}/aporte`, payload),
+
+  pararAporte: (
+    id: number,
+    payload: {
+      dataParada: string;
+    },
+  ) => api.patch(`/investimentos/${id}/aporte/parar`, payload),
+
+  removerAporteProgramado: (id: number, aporteId: number) =>
+    api.delete(`/investimentos/${id}/aportes/${aporteId}`),
+};
 
 export default api;

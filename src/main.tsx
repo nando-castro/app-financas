@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import InvestimentosPage from "./pages/InvestimentosPage";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -90,6 +91,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute>
               <Layout>
                 <CartoesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/investimentos"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <InvestimentosPage />
               </Layout>
             </ProtectedRoute>
           }
