@@ -51,6 +51,8 @@ export const investimentosApi = {
     },
   ) => api.put(`/investimentos/${id}`, payload),
 
+  remove: (id: number) => api.delete(`/investimentos/${id}`),
+
   listarAportes: (id: number) => api.get(`/investimentos/${id}/aportes`),
 
   alterarAporte: (

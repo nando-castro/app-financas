@@ -12,6 +12,7 @@ import {
   PiggyBank,
   Plus,
   RefreshCw,
+  Trash2,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -63,7 +64,9 @@ export default function InvestimentosPage() {
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
 
-  const [investimentos, setInvestimentos] = useState<InvestimentoResumoItem[]>([]);
+  const [investimentos, setInvestimentos] = useState<InvestimentoResumoItem[]>(
+    [],
+  );
   const [loading, setLoading] = useState(false);
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -74,14 +77,14 @@ export default function InvestimentosPage() {
   const [aporteDialogMode, setAporteDialogMode] = useState<"alterar" | "parar">(
     "alterar",
   );
-  const [aporteInvestimentoId, setAporteInvestimentoId] = useState<number | null>(
-    null,
-  );
+  const [aporteInvestimentoId, setAporteInvestimentoId] = useState<
+    number | null
+  >(null);
 
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false);
-  const [historicoInvestimentoId, setHistoricoInvestimentoId] = useState<number | null>(
-    null,
-  );
+  const [historicoInvestimentoId, setHistoricoInvestimentoId] = useState<
+    number | null
+  >(null);
 
   async function buscar() {
     try {
@@ -96,6 +99,17 @@ export default function InvestimentosPage() {
   useEffect(() => {
     buscar();
   }, [mes, ano]);
+
+  async function removerInvestimento(investimentoId: number, nome: string) {
+    const confirmar = window.confirm(
+      `Deseja remover o investimento "${nome}"?`,
+    );
+
+    if (!confirmar) return;
+
+    await investimentosApi.remove(investimentoId);
+    await buscar();
+  }
 
   const meses = useMemo(
     () => [
@@ -181,9 +195,12 @@ export default function InvestimentosPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Meus Investimentos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Meus Investimentos
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Acompanhe o valor investido, a projeção futura e o histórico de aportes.
+            Acompanhe o valor investido, a projeção futura e o histórico de
+            aportes.
           </p>
         </div>
 
@@ -213,7 +230,9 @@ export default function InvestimentosPage() {
             </div>
 
             <div>
-              <p className="text-sm font-medium leading-none">Período da projeção</p>
+              <p className="text-sm font-medium leading-none">
+                Período da projeção
+              </p>
               <p className="text-xs text-muted-foreground">
                 Selecione o mês e o ano para simular quanto terá acumulado
               </p>
@@ -243,13 +262,14 @@ export default function InvestimentosPage() {
                 onChange={(e) => setAno(Number(e.target.value))}
                 className="bg-transparent text-sm outline-none"
               >
-                {Array.from({ length: 11 }, (_, i) => hoje.getFullYear() - 2 + i).map(
-                  (y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ),
-                )}
+                {Array.from(
+                  { length: 11 },
+                  (_, i) => hoje.getFullYear() - 2 + i,
+                ).map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -268,7 +288,9 @@ export default function InvestimentosPage() {
                 <Wallet size={16} />
                 Total investido
               </span>
-              <span className="font-medium">{formatBRL(resumo.totalInvestido)}</span>
+              <span className="font-medium">
+                {formatBRL(resumo.totalInvestido)}
+              </span>
             </div>
 
             <div className="flex items-center justify-between text-sm">
@@ -286,7 +308,9 @@ export default function InvestimentosPage() {
                 <PiggyBank size={16} />
                 Aportes atuais
               </span>
-              <span className="font-medium">{formatBRL(resumo.totalAportesAtuais)}</span>
+              <span className="font-medium">
+                {formatBRL(resumo.totalAportesAtuais)}
+              </span>
             </div>
 
             <div className="h-px bg-border my-1" />
@@ -296,7 +320,9 @@ export default function InvestimentosPage() {
                 <PiggyBank size={16} />
                 Total projetado
               </span>
-              <span className="font-semibold">{formatBRL(resumo.totalProjetado)}</span>
+              <span className="font-semibold">
+                {formatBRL(resumo.totalProjetado)}
+              </span>
             </div>
           </div>
         </div>
@@ -304,9 +330,12 @@ export default function InvestimentosPage() {
 
       {investimentos.length === 0 ? (
         <div className="rounded-2xl border bg-background p-10 text-center shadow-sm">
-          <p className="text-base font-medium">Nenhum investimento cadastrado</p>
+          <p className="text-base font-medium">
+            Nenhum investimento cadastrado
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Clique em “Novo Investimento” para cadastrar e acompanhar a projeção.
+            Clique em “Novo Investimento” para cadastrar e acompanhar a
+            projeção.
           </p>
 
           <div className="mt-4">
@@ -319,6 +348,7 @@ export default function InvestimentosPage() {
       ) : (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {investimentos.map((item) => {
+            console.log(item);
             const valorInicial = Number(item.valorInicial || 0);
             const valorProjetado = Number(item.valorProjetado || 0);
             const rendimentoAcumulado = Number(item.rendimentoAcumulado || 0);
@@ -345,42 +375,72 @@ export default function InvestimentosPage() {
                     </div>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => abrirEditar(item)}
-                    title="Editar investimento"
-                  >
-                    <Pencil size={16} />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => abrirEditar(item)}
+                      title="Editar investimento"
+                    >
+                      <Pencil size={16} />
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        removerInvestimento(item.investimentoId, item.nome)
+                      }
+                      title="Remover investimento"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-2 text-sm">
                   <div className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Valor investido</p>
-                    <p className="font-medium mt-1">{formatBRL(valorInicial)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Valor investido
+                    </p>
+                    <p className="font-medium mt-1">
+                      {formatBRL(valorInicial)}
+                    </p>
                   </div>
 
                   <div className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Rendimento mensal</p>
-                    <p className="font-medium mt-1">{formatPercent(item.taxaMensal)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Rendimento mensal
+                    </p>
+                    <p className="font-medium mt-1">
+                      {formatPercent(item.taxaMensal)}
+                    </p>
                   </div>
 
                   <div className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-xs text-muted-foreground">Aporte mensal atual</p>
-                    <p className="font-medium mt-1">{formatBRL(aporteMensalAtual)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Aporte mensal atual
+                    </p>
+                    <p className="font-medium mt-1">
+                      {formatBRL(aporteMensalAtual)}
+                    </p>
                   </div>
 
                   <div className="rounded-xl border bg-muted/20 p-3">
                     <p className="text-xs text-muted-foreground">
                       Valor projetado em {String(mes).padStart(2, "0")}/{ano}
                     </p>
-                    <p className="font-semibold mt-1">{formatBRL(valorProjetado)}</p>
+                    <p className="font-semibold mt-1">
+                      {formatBRL(valorProjetado)}
+                    </p>
                   </div>
 
                   <div className="rounded-xl border bg-emerald-50 border-emerald-200 p-3">
-                    <p className="text-xs text-emerald-700">Rendimento acumulado</p>
+                    <p className="text-xs text-emerald-700">
+                      Rendimento acumulado
+                    </p>
                     <p className="font-semibold mt-1 text-emerald-700">
                       {formatBRL(rendimentoAcumulado)}
                     </p>
