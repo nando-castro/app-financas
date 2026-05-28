@@ -75,47 +75,65 @@ export default function ChecklistMensal() {
 
   const itens = useMemo(() => {
     const base = data?.itens ?? [];
-    return base.map((it) => ({
-      ...it,
-      checked: edits[it.financaId] ?? it.checked,
-    }));
+
+    return [...base]
+      .map((it) => ({
+        ...it,
+        checked: edits[it.financaId] ?? it.checked,
+      }))
+      .sort((a, b) => {
+        const dataA = dayjs(a.dataLancamento).valueOf();
+        const dataB = dayjs(b.dataLancamento).valueOf();
+
+        if (dataB !== dataA) {
+          return dataB - dataA;
+        }
+
+        return b.financaId - a.financaId;
+      });
   }, [data, edits]);
 
   const dirtyCount = useMemo(() => {
     if (!data) return 0;
+
     let c = 0;
+
     for (const it of data.itens) {
       const v = edits[it.financaId];
+
       if (v === undefined) continue;
       if (v !== it.checked) c++;
     }
+
     return c;
   }, [data, edits]);
 
-  // ✅ Agora o "saldo acumulado do mês" vem do endpoint de estatísticas
-  // ✅ E vai sendo ajustado ao marcar/desmarcar:
-  // saldoAcumuladoAtualizado = saldoAnterior (fixo) + (recebidasMarcadas - pagasMarcadas)
   const resumo = useMemo(() => {
     const saldoAnterior = estat?.saldoAnterior ?? 0;
 
     let recebidas = 0;
     let pagas = 0;
 
-    let totalRendasMes = estat?.totalRendas ?? 0;
-    let totalDespesasMes = estat?.totalDespesas ?? 0;
+    const totalRendasMes = estat?.totalRendas ?? 0;
+    const totalDespesasMes = estat?.totalDespesas ?? 0;
 
     let marcados = 0;
 
     for (const it of itens) {
       const v = Number(it.valor) || 0;
+
       if (it.checked) {
-        if (it.tipo === "RENDA") recebidas += v;
-        else pagas += v;
+        if (it.tipo === "RENDA") {
+          recebidas += v;
+        } else {
+          pagas += v;
+        }
+
         marcados++;
       }
     }
 
-    const saldoMesParcial = recebidas - pagas; // apenas marcados
+    const saldoMesParcial = recebidas - pagas;
     const saldoAcumuladoParcial = saldoAnterior + saldoMesParcial;
 
     const faltaReceber = Math.max(0, totalRendasMes - recebidas);
@@ -145,7 +163,10 @@ export default function ChecklistMensal() {
   }
 
   function toggle(financaId: number, current: boolean) {
-    setEdits((prev) => ({ ...prev, [financaId]: !current }));
+    setEdits((prev) => ({
+      ...prev,
+      [financaId]: !current,
+    }));
   }
 
   function desfazer() {
@@ -156,25 +177,48 @@ export default function ChecklistMensal() {
     if (!data) return;
 
     const updates: { financaId: number; checked: boolean }[] = [];
+
     for (const it of data.itens) {
       const v = edits[it.financaId];
+
       if (v === undefined) continue;
-      if (v !== it.checked) updates.push({ financaId: it.financaId, checked: v });
+
+      if (v !== it.checked) {
+        updates.push({
+          financaId: it.financaId,
+          checked: v,
+        });
+      }
     }
+
     if (updates.length === 0) return;
 
     setSaving(true);
+
     try {
-      await api.patch(`/financas/checklist/mensal/bulk`, { mes, ano, itens: updates });
+      await api.patch(`/financas/checklist/mensal/bulk`, {
+        mes,
+        ano,
+        itens: updates,
+      });
+
       await carregar(mes, ano);
     } finally {
       setSaving(false);
     }
   }
 
-  const mesLabel = useMemo(() => dayjs().month(mes - 1).format("MMMM"), [mes]);
+  const mesLabel = useMemo(
+    () =>
+      dayjs()
+        .month(mes - 1)
+        .format("MMMM"),
+    [mes],
+  );
 
-  if (!data || !estat) return <p className="text-center mt-10">Carregando...</p>;
+  if (!data || !estat) {
+    return <p className="text-center mt-10">Carregando...</p>;
+  }
 
   return (
     <div className="space-y-6">
@@ -182,15 +226,26 @@ export default function ChecklistMensal() {
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-2">
           <Calendar className="text-slate-600" size={18} />
-          <select value={mes} onChange={mudarMes} className="border rounded-lg px-2 py-1 text-sm">
+
+          <select
+            value={mes}
+            onChange={mudarMes}
+            className="border rounded-lg px-2 py-1 text-sm"
+          >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                {dayjs().month(m - 1).format("MMMM")}
+                {dayjs()
+                  .month(m - 1)
+                  .format("MMMM")}
               </option>
             ))}
           </select>
 
-          <select value={ano} onChange={mudarAno} className="border rounded-lg px-2 py-1 text-sm">
+          <select
+            value={ano}
+            onChange={mudarAno}
+            className="border rounded-lg px-2 py-1 text-sm"
+          >
             {Array.from({ length: 6 }, (_, i) => 2022 + i).map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -228,15 +283,19 @@ export default function ChecklistMensal() {
         </div>
       </div>
 
-      {/* ✅ Resumo (acumulado real com saldoAnterior do endpoint) */}
+      {/* Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex items-center gap-2">
             <CheckCircle2 className="text-emerald-600" size={20} />
             <CardTitle>Recebidas (marcadas)</CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="text-2xl font-semibold text-emerald-600">{moneyBRL(resumo.recebidas)}</div>
+            <div className="text-2xl font-semibold text-emerald-600">
+              {moneyBRL(resumo.recebidas)}
+            </div>
+
             <div className="text-sm text-slate-600 mt-1">
               Falta receber: <b>{moneyBRL(resumo.faltaReceber)}</b>
             </div>
@@ -248,8 +307,12 @@ export default function ChecklistMensal() {
             <Circle className="text-rose-600" size={20} />
             <CardTitle>Pagas (marcadas)</CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="text-2xl font-semibold text-rose-600">{moneyBRL(resumo.pagas)}</div>
+            <div className="text-2xl font-semibold text-rose-600">
+              {moneyBRL(resumo.pagas)}
+            </div>
+
             <div className="text-sm text-slate-600 mt-1">
               Falta pagar: <b>{moneyBRL(resumo.faltaPagar)}</b>
             </div>
@@ -260,10 +323,16 @@ export default function ChecklistMensal() {
           <CardHeader>
             <CardTitle>Saldo Anterior</CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className={`text-2xl font-semibold ${resumo.saldoAnterior >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            <div
+              className={`text-2xl font-semibold ${
+                resumo.saldoAnterior >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}
+            >
               {moneyBRL(resumo.saldoAnterior)}
             </div>
+
             <div className="text-sm text-slate-600 mt-1">
               (do endpoint mensal)
             </div>
@@ -274,10 +343,18 @@ export default function ChecklistMensal() {
           <CardHeader>
             <CardTitle>Saldo do Mês (marcado)</CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className={`text-2xl font-semibold ${resumo.saldoMesParcial >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            <div
+              className={`text-2xl font-semibold ${
+                resumo.saldoMesParcial >= 0
+                  ? "text-emerald-600"
+                  : "text-rose-600"
+              }`}
+            >
               {moneyBRL(resumo.saldoMesParcial)}
             </div>
+
             <div className="text-sm text-slate-600 mt-1">
               Recebidas − Pagas (marcados)
             </div>
@@ -288,16 +365,21 @@ export default function ChecklistMensal() {
           <CardHeader>
             <CardTitle>Saldo Acumulado (parcial)</CardTitle>
           </CardHeader>
+
           <CardContent>
             <div
               className={`text-2xl font-semibold ${
-                resumo.saldoAcumuladoParcial >= 0 ? "text-emerald-600" : "text-rose-600"
+                resumo.saldoAcumuladoParcial >= 0
+                  ? "text-emerald-600"
+                  : "text-rose-600"
               }`}
             >
               {moneyBRL(resumo.saldoAcumuladoParcial)}
             </div>
+
             <div className="text-sm text-slate-600 mt-1">
-              {moneyBRL(resumo.saldoAnterior)} + {moneyBRL(resumo.saldoMesParcial)}
+              {moneyBRL(resumo.saldoAnterior)} +{" "}
+              {moneyBRL(resumo.saldoMesParcial)}
             </div>
           </CardContent>
         </Card>
@@ -322,6 +404,7 @@ export default function ChecklistMensal() {
             <div className="space-y-2">
               {itens.map((it) => {
                 const isRenda = it.tipo === "RENDA";
+
                 const badge = isRenda
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                   : "bg-rose-50 text-rose-700 border-rose-200";
@@ -333,14 +416,20 @@ export default function ChecklistMensal() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-24 text-sm text-slate-600">
-                        <div className="font-medium">{dayjs(it.dataLancamento).format("DD/MM")}</div>
+                        <div className="font-medium">
+                          {dayjs(it.dataLancamento).format("DD/MM")}
+                        </div>
+
                         <div className="text-xs opacity-80">{ano}</div>
                       </div>
 
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold">{it.nome}</span>
-                          <span className={`text-xs border rounded-full px-2 py-0.5 ${badge}`}>
+
+                          <span
+                            className={`text-xs border rounded-full px-2 py-0.5 ${badge}`}
+                          >
                             {it.tipo}
                           </span>
 
@@ -353,13 +442,21 @@ export default function ChecklistMensal() {
 
                         <div className="text-xs text-slate-500 mt-0.5">
                           ID: {it.financaId}
-                          {it.checkedAt ? ` • Marcado em ${dayjs(it.checkedAt).format("DD/MM HH:mm")}` : ""}
+                          {it.checkedAt
+                            ? ` • Marcado em ${dayjs(it.checkedAt).format(
+                                "DD/MM HH:mm",
+                              )}`
+                            : ""}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-4">
-                      <div className={`font-semibold ${isRenda ? "text-emerald-700" : "text-rose-700"}`}>
+                      <div
+                        className={`font-semibold ${
+                          isRenda ? "text-emerald-700" : "text-rose-700"
+                        }`}
+                      >
                         {moneyBRL(it.valor)}
                       </div>
 
@@ -370,9 +467,14 @@ export default function ChecklistMensal() {
                           onChange={() => toggle(it.financaId, !!it.checked)}
                           className="h-4 w-4"
                         />
+
                         <span className="text-sm">
                           {isRenda ? "Recebi" : "Paguei"}:{" "}
-                          <b className={it.checked ? "text-emerald-700" : "text-slate-600"}>
+                          <b
+                            className={
+                              it.checked ? "text-emerald-700" : "text-slate-600"
+                            }
+                          >
                             {it.checked ? "Sim" : "Não"}
                           </b>
                         </span>
