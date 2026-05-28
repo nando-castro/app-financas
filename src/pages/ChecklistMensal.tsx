@@ -82,14 +82,21 @@ export default function ChecklistMensal() {
         checked: edits[it.financaId] ?? it.checked,
       }))
       .sort((a, b) => {
+        // 1. Primeiro aparecem os não marcados
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
+
+        // 2. Depois segue ordem cronológica normal
         const dataA = dayjs(a.dataLancamento).valueOf();
         const dataB = dayjs(b.dataLancamento).valueOf();
 
-        if (dataB !== dataA) {
+        if (dataA !== dataB) {
           return dataB - dataA;
         }
 
-        return b.financaId - a.financaId;
+        // 3. Critério de desempate
+        return a.financaId - b.financaId;
       });
   }, [data, edits]);
 
