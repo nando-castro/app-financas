@@ -348,7 +348,11 @@ export function FinancaDialog({
               onValueChange={(v) => setForm({ ...form, categoriaId: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
+                <SelectValue
+                  placeholder={`Selecione uma categoria de ${
+                    tipo === "RENDA" ? "renda" : "despesa"
+                  }`}
+                />
               </SelectTrigger>
               <SelectContent>
                 {categorias.map((cat) => (
