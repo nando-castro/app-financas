@@ -433,7 +433,7 @@ export default function Dashboard() {
                             </span>
 
                             <span className="text-blue-600 font-medium">
-                              {porcentagemSalario.toFixed(1)}% do salário — R${" "}
+                              {porcentagemSalario.toFixed(1)}% da renda — R${" "}
                               {c.total.toFixed(2)}
                             </span>
                           </li>
