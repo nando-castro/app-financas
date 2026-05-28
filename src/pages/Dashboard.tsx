@@ -10,12 +10,17 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  Bar,
+  BarChart,
   Cell,
+  LabelList,
   Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
 export default function Dashboard() {
@@ -50,7 +55,7 @@ export default function Dashboard() {
   // 🔹 Carregar resumo financeiro
   async function carregarResumo(m: number, a: number) {
     const { data } = await api.get(
-      `/financas/estatisticas/mensal?mes=${m}&ano=${a}`
+      `/financas/estatisticas/mensal?mes=${m}&ano=${a}`,
     );
     setResumo(data);
   }
@@ -58,7 +63,7 @@ export default function Dashboard() {
   // 🔹 Carregar categorias (RENDA / DESPESA)
   async function carregarCategorias(m: number, a: number) {
     const { data } = await api.get(
-      `/financas/estatisticas/categorias?mes=${m}&ano=${a}`
+      `/financas/estatisticas/categorias?mes=${m}&ano=${a}`,
     );
     const rendas = data.filter((item: any) => item.tipo === "RENDA");
     const despesas = data.filter((item: any) => item.tipo === "DESPESA");
@@ -82,6 +87,45 @@ export default function Dashboard() {
   }
 
   if (!resumo) return <p className="text-center mt-10">Carregando...</p>;
+
+  const formatarMoeda = (valor: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(valor || 0);
+
+  const salario = Number(resumo.totalRendas ?? 0);
+  const despesas = Number(resumo.totalDespesas ?? 0);
+  const saldo = Number(resumo.saldo ?? salario - despesas);
+
+  const percentualDespesa =
+    salario > 0 ? Number(((despesas / salario) * 100).toFixed(2)) : 0;
+
+  const percentualSaldo =
+    salario > 0 ? Number(((saldo / salario) * 100).toFixed(2)) : 0;
+
+  const dadosComparativo = [
+    {
+      nome: "Salário",
+      valor: salario,
+      percentual: salario > 0 ? 100 : 0,
+      cor: "#10B981",
+    },
+    {
+      nome: "Despesas",
+      valor: despesas,
+      percentual: percentualDespesa,
+      cor: "#EF4444",
+    },
+    {
+      nome: "Saldo livre",
+      valor: saldo,
+      percentual: Math.max(percentualSaldo, 0),
+      cor: "#3B82F6",
+    },
+  ];
+
+  const limiteGrafico = Math.max(100, percentualDespesa);
 
   return (
     <div className="space-y-6">
@@ -271,7 +315,7 @@ export default function Dashboard() {
                   {(() => {
                     const totalRenda = categoriasRenda.reduce(
                       (acc, c) => acc + c.total,
-                      0
+                      0,
                     );
                     return [...categoriasRenda]
                       .sort((a, b) => b.total - a.total) // 🔹 Ordena do maior pro menor
@@ -317,7 +361,7 @@ export default function Dashboard() {
                   {(() => {
                     const totalDespesa = categoriasDespesa.reduce(
                       (acc, c) => acc + c.total,
-                      0
+                      0,
                     );
                     return [...categoriasDespesa]
                       .sort((a, b) => b.total - a.total) // 🔹 Ordena do maior pro menor
@@ -348,7 +392,181 @@ export default function Dashboard() {
                 </ul>
               )}
             </div>
+
+            {/* Comparativo das despesas em relação ao salário */}
+            <div className="mt-8">
+              <h3 className="text-blue-600 font-semibold mb-2 text-center">
+                Despesas em relação ao salário
+              </h3>
+
+              {categoriasDespesa.length === 0 ? (
+                <p className="text-center text-slate-500">
+                  Nenhuma despesa encontrada.
+                </p>
+              ) : resumo.totalRendas <= 0 ? (
+                <p className="text-center text-slate-500">
+                  Nenhuma renda encontrada para calcular o comparativo.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(() => {
+                    const totalRenda = Number(resumo.totalRendas || 0);
+
+                    return [...categoriasDespesa]
+                      .sort((a, b) => b.total - a.total)
+                      .map((c, i) => {
+                        const porcentagemSalario = (c.total / totalRenda) * 100;
+
+                        return (
+                          <li
+                            key={`despesa-salario-${i}`}
+                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor: cores[i % cores.length],
+                                }}
+                              ></span>
+                              {c.categoria}
+                            </span>
+
+                            <span className="text-blue-600 font-medium">
+                              {porcentagemSalario.toFixed(1)}% do salário — R${" "}
+                              {c.total.toFixed(2)}
+                            </span>
+                          </li>
+                        );
+                      });
+                  })()}
+                </ul>
+              )}
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Comparativo salário x despesas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Comparação da despesa em relação ao salário —{" "}
+            {dayjs()
+              .month(mes - 1)
+              .format("MMMM")}{" "}
+            / {ano}
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          {salario <= 0 ? (
+            <p className="text-center text-slate-500 py-6">
+              Nenhuma renda encontrada para calcular o comparativo.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    Salário/Rendas
+                  </p>
+                  <strong className="text-xl text-green-600">
+                    {formatarMoeda(salario)}
+                  </strong>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    Despesas
+                  </p>
+                  <strong className="text-xl text-red-600">
+                    {formatarMoeda(despesas)}
+                  </strong>
+                  <p className="text-sm text-red-500 mt-1">
+                    {percentualDespesa.toFixed(2)}% do salário
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    Saldo livre
+                  </p>
+                  <strong
+                    className={`text-xl ${
+                      saldo >= 0 ? "text-blue-600" : "text-red-600"
+                    }`}
+                  >
+                    {formatarMoeda(saldo)}
+                  </strong>
+                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                    {percentualSaldo.toFixed(2)}% do salário
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={dadosComparativo}
+                    layout="vertical"
+                    margin={{ top: 10, right: 70, left: 20, bottom: 10 }}
+                  >
+                    <XAxis
+                      type="number"
+                      domain={[0, limiteGrafico]}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+
+                    <YAxis
+                      type="category"
+                      dataKey="nome"
+                      width={90}
+                      tick={{ fontSize: 13 }}
+                    />
+
+                    <Tooltip
+                      formatter={(_, __, props) => {
+                        const item = props.payload;
+
+                        return [
+                          `${item.percentual.toFixed(2)}% — ${formatarMoeda(
+                            item.valor,
+                          )}`,
+                          item.nome,
+                        ];
+                      }}
+                      contentStyle={{
+                        backgroundColor:
+                          theme === "dark" ? "#1e293b" : "#f9fafb",
+                        borderColor: theme === "dark" ? "#334155" : "#e5e7eb",
+                        color: theme === "dark" ? "#f8fafc" : "#111827",
+                      }}
+                    />
+
+                    <Bar dataKey="percentual" radius={[0, 8, 8, 0]}>
+                      {dadosComparativo.map((item) => (
+                        <Cell key={item.nome} fill={item.cor} />
+                      ))}
+
+                      <LabelList
+                        dataKey="percentual"
+                        position="right"
+                        formatter={(value: number) => `${value.toFixed(2)}%`}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {despesas > salario && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  Suas despesas ultrapassaram o salário em{" "}
+                  {(percentualDespesa - 100).toFixed(2)}%.
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
