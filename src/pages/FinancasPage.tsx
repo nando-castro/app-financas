@@ -1,23 +1,24 @@
-import { FinancaDialog } from '@/components/financas/FinancaDialog';
-import { FinancasTable } from '@/components/financas/FinancasTable';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Filter, PlusCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import api from '../services/api';
+import { FinancaDialog } from "@/components/financas/FinancaDialog";
+import { FinancasTable } from "@/components/financas/FinancasTable";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Filter, PlusCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import api from "../services/api";
+
+type TipoFinanca = "RENDA" | "DESPESA";
 
 export default function FinancasPage() {
-  const [tipo, setTipo] = useState<'RENDA' | 'DESPESA'>('RENDA');
+  const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
-  const [categoriaId, setCategoriaId] = useState<number | ''>('');
+  const [categoriaId, setCategoriaId] = useState<number | "">("");
   const [open, setOpen] = useState(false);
 
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
 
-  /** 🔹 Busca as finanças com filtros */
   async function buscarFinancas() {
     const { data } = await api.get(`/financas/tipo/${tipo}`, {
       params: {
@@ -26,30 +27,52 @@ export default function FinancasPage() {
         categoriaId: categoriaId || undefined,
       },
     });
+
     setFinancas(data);
   }
 
-  /** 🔹 Busca todas as categorias (pode ser filtradas por tipo se preferir) */
   async function buscarCategorias() {
     try {
-      const { data } = await api.get('/categorias');
+      const { data } = await api.get("/categorias", {
+        params: {
+          tipo,
+        },
+      });
+
       setCategorias(data);
     } catch (error) {
-      console.error('Erro ao buscar categorias:', error);
+      console.error("Erro ao buscar categorias:", error);
     }
+  }
+
+  function handleTipoChange(value: string) {
+    const novoTipo = value as TipoFinanca;
+
+    setTipo(novoTipo);
+    setCategoriaId("");
   }
 
   useEffect(() => {
     buscarCategorias();
-  }, []);
+  }, [tipo]);
 
   useEffect(() => {
     buscarFinancas();
   }, [tipo, mes, ano, categoriaId]);
 
   const meses = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
   ];
 
   return (
@@ -57,8 +80,12 @@ export default function FinancasPage() {
       {/* Cabeçalho */}
       <div className="flex justify-between items-center flex-wrap gap-2">
         <h1 className="text-xl font-semibold">Minhas Finanças</h1>
-        <Button onClick={() => setOpen(true)} className="flex items-center gap-2">
-          <PlusCircle size={18} /> Nova {tipo === 'RENDA' ? 'Renda' : 'Despesa'}
+
+        <Button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <PlusCircle size={18} /> Nova {tipo === "RENDA" ? "Renda" : "Despesa"}
         </Button>
       </div>
 
@@ -81,20 +108,27 @@ export default function FinancasPage() {
           onChange={(e) => setAno(Number(e.target.value))}
           className="border rounded-md px-3 py-2"
         >
-          {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
+          {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map(
+            (y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ),
+          )}
         </select>
 
-        {/* 🔹 Filtro de Categoria */}
+        {/* Filtro de Categoria por tipo */}
         <select
           value={categoriaId}
-          onChange={(e) => setCategoriaId(e.target.value ? Number(e.target.value) : '')}
+          onChange={(e) =>
+            setCategoriaId(e.target.value ? Number(e.target.value) : "")
+          }
           className="border rounded-md px-3 py-2 min-w-[180px]"
         >
-          <option value="">Todas as Categorias</option>
+          <option value="">
+            Todas as Categorias de {tipo === "RENDA" ? "Renda" : "Despesa"}
+          </option>
+
           {categorias.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
@@ -112,22 +146,40 @@ export default function FinancasPage() {
       </div>
 
       {/* Abas de tipo */}
-      <Tabs value={tipo} onValueChange={(v: any) => setTipo(v)}>
+      <Tabs value={tipo} onValueChange={handleTipoChange}>
         <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="RENDA" className="w-1/2 md:w-auto">Rendas</TabsTrigger>
-          <TabsTrigger value="DESPESA" className="w-1/2 md:w-auto">Despesas</TabsTrigger>
+          <TabsTrigger value="RENDA" className="w-1/2 md:w-auto">
+            Rendas
+          </TabsTrigger>
+
+          <TabsTrigger value="DESPESA" className="w-1/2 md:w-auto">
+            Despesas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="RENDA">
-          <FinancasTable financas={financas} tipo="RENDA" onRefresh={buscarFinancas} />
+          <FinancasTable
+            financas={financas}
+            tipo="RENDA"
+            onRefresh={buscarFinancas}
+          />
         </TabsContent>
 
         <TabsContent value="DESPESA">
-          <FinancasTable financas={financas} tipo="DESPESA" onRefresh={buscarFinancas} />
+          <FinancasTable
+            financas={financas}
+            tipo="DESPESA"
+            onRefresh={buscarFinancas}
+          />
         </TabsContent>
       </Tabs>
 
-      <FinancaDialog open={open} setOpen={setOpen} tipo={tipo} onSave={buscarFinancas} />
+      <FinancaDialog
+        open={open}
+        setOpen={setOpen}
+        tipo={tipo}
+        onSave={buscarFinancas}
+      />
     </div>
   );
 }

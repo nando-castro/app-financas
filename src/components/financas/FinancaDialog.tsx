@@ -64,7 +64,10 @@ export function FinancaDialog({
   useEffect(() => {
     if (open) {
       carregarCategorias();
-      if (canShowPagamento) carregarCartoes();
+
+      if (canShowPagamento) {
+        carregarCartoes();
+      }
 
       if (initialData) {
         const di = initialData.dataInicio?.split("T")[0] || "";
@@ -79,7 +82,8 @@ export function FinancaDialog({
           categoriaId: initialData.categoria?.id
             ? String(initialData.categoria.id)
             : "",
-          formaPagamento: (initialData.formaPagamento as FormaPagamento) || "PIX",
+          formaPagamento:
+            (initialData.formaPagamento as FormaPagamento) || "PIX",
           cartaoId: initialData.cartaoId ? String(initialData.cartaoId) : "",
         });
 
@@ -96,12 +100,12 @@ export function FinancaDialog({
           formaPagamento: "PIX",
           cartaoId: "",
         });
+
         setUnica(false);
         setRepetirAteDataFim(false);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, tipo]);
 
   // Quando marcar Única
   useEffect(() => {
@@ -137,10 +141,16 @@ export function FinancaDialog({
 
   async function carregarCategorias() {
     try {
-      const { data } = await api.get("/categorias");
+      const { data } = await api.get("/categorias", {
+        params: {
+          tipo,
+        },
+      });
+
       setCategorias(data);
     } catch (err) {
       console.error(err);
+      setCategorias([]);
     }
   }
 
@@ -193,8 +203,8 @@ export function FinancaDialog({
         unica || repetirAteDataFim
           ? null
           : form.parcelas
-          ? Number(form.parcelas)
-          : null;
+            ? Number(form.parcelas)
+            : null;
 
       const basePayload: any = {
         nome: form.nome,
@@ -219,7 +229,7 @@ export function FinancaDialog({
       if (mode === "range") {
         if (!dataInicioBase || !form.dataFim) {
           alert(
-            "Preencha a data inicial e a data final para repetir até a data fim."
+            "Preencha a data inicial e a data final para repetir até a data fim.",
           );
           return;
         }
@@ -394,13 +404,15 @@ export function FinancaDialog({
 
                     {!!cartaoLabel && (
                       <p className="text-xs text-slate-500 mt-1">
-                        Será lançado no cartão: <span className="font-medium">{cartaoLabel}</span>
+                        Será lançado no cartão:{" "}
+                        <span className="font-medium">{cartaoLabel}</span>
                       </p>
                     )}
 
                     {!cartoes.length && (
                       <p className="text-xs text-slate-500 mt-1">
-                        Nenhum cartão cadastrado. Cadastre um cartão na tela de cartões.
+                        Nenhum cartão cadastrado. Cadastre um cartão na tela de
+                        cartões.
                       </p>
                     )}
                   </div>
@@ -448,9 +460,7 @@ export function FinancaDialog({
               <Input
                 type="date"
                 value={unica ? form.dataInicio : form.dataFim}
-                onChange={(e) =>
-                  setForm({ ...form, dataFim: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
                 disabled={unica}
                 className={unica ? "opacity-70" : ""}
               />
@@ -483,8 +493,8 @@ export function FinancaDialog({
               {unica
                 ? " (Desabilitado porque é única.)"
                 : repetirAteDataFim
-                ? " (Desabilitado porque será criada uma por mês até a data fim.)"
-                : ""}
+                  ? " (Desabilitado porque será criada uma por mês até a data fim.)"
+                  : ""}
             </p>
           </div>
         </div>
