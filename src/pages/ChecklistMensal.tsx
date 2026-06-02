@@ -92,7 +92,7 @@ export default function ChecklistMensal() {
         const dataB = dayjs(b.dataLancamento).valueOf();
 
         if (dataA !== dataB) {
-          return dataB - dataA;
+          return dataA - dataB;
         }
 
         // 3. Critério de desempate
