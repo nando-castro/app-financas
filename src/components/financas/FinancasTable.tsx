@@ -1,17 +1,29 @@
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import api from '@/services/api';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { FinancaDialog } from './FinancaDialog';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import api from "@/services/api";
+import { Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { FinancaDialog } from "./FinancaDialog";
 
 export function FinancasTable({ financas, tipo, onRefresh }: any) {
   const [selected, setSelected] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [openEdit, setOpenEdit] = useState(false);
+
+  function formatarData(data: string) {
+    if (!data) return "—";
+
+    const [ano, mes, dia] = data.split("-");
+
+    return `${dia}/${mes}/${ano}`;
+  }
 
   async function handleDelete() {
     try {
@@ -20,14 +32,14 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
       onRefresh();
     } catch (err) {
       console.error(err);
-      alert('Erro ao excluir finança');
+      alert("Erro ao excluir finança");
     }
   }
 
   if (!financas.length)
     return (
       <Card className="p-4 text-center text-slate-500">
-        Nenhuma {tipo === 'RENDA' ? 'renda' : 'despesa'} cadastrada.
+        Nenhuma {tipo === "RENDA" ? "renda" : "despesa"} cadastrada.
       </Card>
     );
 
@@ -50,16 +62,20 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
               <tr key={f.id} className="border-b hover:bg-slate-50">
                 <td className="p-3 font-medium">{f.nome}</td>
                 <td className="p-3">
-                  R$ {Number(f.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R${" "}
+                  {Number(f.valor).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
                 </td>
                 <td className="p-3 hidden sm:table-cell">
-                  {f.categoria?.nome ?? '—'}
+                  {f.categoria?.nome ?? "—"}
                 </td>
                 <td className="p-3 hidden md:table-cell">
-                  {format(new Date(f.dataInicio), 'dd/MM/yyyy', { locale: ptBR })}
+                  {formatarData(f.dataInicio)}
                 </td>
+
                 <td className="p-3 hidden md:table-cell">
-                  {f.dataFim ? format(new Date(f.dataFim), 'dd/MM/yyyy', { locale: ptBR }) : '—'}
+                  {formatarData(f.dataFim)}
                 </td>
                 <td className="p-3 flex justify-end gap-2">
                   <Button
@@ -102,13 +118,19 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
 
       {/* Modal de exclusão */}
       {deleteTarget && (
-        <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <Dialog
+          open={!!deleteTarget}
+          onOpenChange={() => setDeleteTarget(null)}
+        >
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle>Excluir {tipo === 'RENDA' ? 'renda' : 'despesa'}</DialogTitle>
+              <DialogTitle>
+                Excluir {tipo === "RENDA" ? "renda" : "despesa"}
+              </DialogTitle>
             </DialogHeader>
             <p className="text-slate-600">
-              Tem certeza que deseja excluir <strong>{deleteTarget.nome}</strong>?
+              Tem certeza que deseja excluir{" "}
+              <strong>{deleteTarget.nome}</strong>?
             </p>
             <DialogFooter className="mt-4">
               <Button variant="outline" onClick={() => setDeleteTarget(null)}>
