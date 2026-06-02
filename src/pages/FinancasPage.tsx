@@ -19,6 +19,9 @@ export default function FinancasPage() {
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [ano, setAno] = useState(hoje.getFullYear());
 
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+
   async function buscarFinancas() {
     const { data } = await api.get(`/financas/tipo/${tipo}`, {
       params: {
@@ -74,6 +77,29 @@ export default function FinancasPage() {
     "Novembro",
     "Dezembro",
   ];
+
+  const financasFiltradas = financas.filter((financa) => {
+    if (!dataInicio && !dataFim) {
+      return true;
+    }
+
+    const data = financa.dataInicio;
+
+    const atendeInicio = !dataInicio || data >= dataInicio;
+    const atendeFim = !dataFim || data <= dataFim;
+
+    return atendeInicio && atendeFim;
+  });
+
+  function limparFiltros() {
+    const hoje = new Date();
+
+    setMes(hoje.getMonth() + 1);
+    setAno(hoje.getFullYear());
+    setCategoriaId("");
+    setDataInicio("");
+    setDataFim("");
+  }
 
   return (
     <div className="space-y-4">
@@ -136,13 +162,39 @@ export default function FinancasPage() {
           ))}
         </select>
 
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={buscarFinancas}
-        >
-          <Filter size={16} /> Filtrar
-        </Button>
+        <div className="flex items-center gap-2">
+          <span>De:</span>
+          <input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            className="border rounded-md px-3 py-2"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span>Até:</span>
+          <input
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+            className="border rounded-md px-3 py-2"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={buscarFinancas}
+          >
+            <Filter size={16} /> Filtrar
+          </Button>
+
+          <Button variant="secondary" onClick={limparFiltros}>
+            Limpar Filtros
+          </Button>
+        </div>
       </div>
 
       {/* Abas de tipo */}
@@ -159,7 +211,7 @@ export default function FinancasPage() {
 
         <TabsContent value="RENDA">
           <FinancasTable
-            financas={financas}
+            financas={financasFiltradas}
             tipo="RENDA"
             onRefresh={buscarFinancas}
           />
@@ -167,7 +219,7 @@ export default function FinancasPage() {
 
         <TabsContent value="DESPESA">
           <FinancasTable
-            financas={financas}
+            financas={financasFiltradas}
             tipo="DESPESA"
             onRefresh={buscarFinancas}
           />
