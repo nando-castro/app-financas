@@ -10,6 +10,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const financasApi = {
+  gerarRelatorio: (mes: number, ano: number) =>
+    api.get("/financas/relatorio/pdf", {
+      params: { mes, ano },
+      responseType: "blob",
+    }),
+};
+
 // services/api.ts (trecho)
 export const cartoesApi = {
   listar: () => api.get("/cartoes"),

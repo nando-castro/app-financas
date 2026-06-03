@@ -2,9 +2,9 @@ import { FinancaDialog } from "@/components/financas/FinancaDialog";
 import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Filter, PlusCircle } from "lucide-react";
+import { Download, Filter, PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import api from "../services/api";
+import api, { financasApi } from "../services/api";
 
 type TipoFinanca = "RENDA" | "DESPESA";
 
@@ -101,18 +101,56 @@ export default function FinancasPage() {
     setDataFim("");
   }
 
+  async function gerarRelatorio() {
+    try {
+      const response = await financasApi.gerarRelatorio(mes, ano);
+
+      const blob = new Blob([response.data], {
+        type: "application/pdf",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `relatorio-financeiro-${mes}-${ano}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
       <div className="flex justify-between items-center flex-wrap gap-2">
         <h1 className="text-xl font-semibold">Minhas Finanças</h1>
 
-        <Button
-          onClick={() => setOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <PlusCircle size={18} /> Nova {tipo === "RENDA" ? "Renda" : "Despesa"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={gerarRelatorio}
+            className="flex items-center gap-2"
+          >
+            <Download size={18} />
+            Relatório
+          </Button>
+
+          <Button
+            onClick={() => setOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <PlusCircle size={18} />
+            Nova {tipo === "RENDA" ? "Renda" : "Despesa"}
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
