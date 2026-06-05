@@ -32,6 +32,13 @@ type RegraPercentualDialogProps = {
     nome?: string;
     percentual?: number;
     basePercentual?: string;
+
+    mesReferencia?: number;
+    anoReferencia?: number;
+
+    dataInicio?: string;
+    dataFim?: string;
+
     categoria?: {
       id: number;
       nome: string;
@@ -55,6 +62,16 @@ export function RegraPercentualDialog({
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
+  const [tipoVigencia, setTipoVigencia] = useState<"TODOS" | "MES" | "PERIODO">(
+    "TODOS",
+  );
+
+  const [mesReferencia, setMesReferencia] = useState("");
+  const [anoReferencia, setAnoReferencia] = useState("");
+
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+
   const isEdit = useMemo(() => Boolean(initialData?.id), [initialData?.id]);
 
   useEffect(() => {
@@ -75,13 +92,24 @@ export function RegraPercentualDialog({
     setCategoriaId(
       initialData?.categoria?.id ? String(initialData.categoria.id) : undefined,
     );
+
+    if (initialData?.mesReferencia) {
+      setTipoVigencia("MES");
+      setMesReferencia(String(initialData.mesReferencia));
+      setAnoReferencia(String(initialData.anoReferencia));
+    } else if (initialData?.dataInicio) {
+      setTipoVigencia("PERIODO");
+      setDataInicio(initialData.dataInicio.slice(0, 10));
+      setDataFim(initialData.dataFim?.slice(0, 10) ?? "");
+    } else {
+      setTipoVigencia("TODOS");
+    }
   }, [open, initialData]);
 
   async function carregarCategorias() {
     try {
       const { data } = await categoriasApi.buscarPorTipo("RENDA");
       setCategorias(data);
-      
     } catch {
       setCategorias([]);
     }
@@ -92,19 +120,49 @@ export function RegraPercentualDialog({
     setPercentual("");
     setBasePercentual("TOTAL_RENDAS");
     setCategoriaId(undefined);
+
+    setTipoVigencia("TODOS");
+    setMesReferencia("");
+    setAnoReferencia("");
+
+    setDataInicio("");
+    setDataFim("");
   }
 
   async function salvar() {
     try {
       setSaving(true);
 
-      const payload = {
+      const payload: any = {
         nome: nome.trim(),
         percentual: Number(percentual),
         basePercentual,
-        categoriaId:
-          basePercentual === "CATEGORIA_RENDA" ? Number(categoriaId) : null,
       };
+
+      if (basePercentual === "CATEGORIA_RENDA" && categoriaId) {
+        payload.categoriaId = Number(categoriaId);
+      }
+
+      if (tipoVigencia === "MES") {
+        payload.mesReferencia = Number(mesReferencia);
+        payload.anoReferencia = Number(anoReferencia);
+        payload.dataInicio = undefined;
+        payload.dataFim = undefined;
+      }
+
+      if (tipoVigencia === "PERIODO") {
+        payload.dataInicio = dataInicio;
+        payload.dataFim = dataFim;
+        payload.mesReferencia = undefined;
+        payload.anoReferencia = undefined;
+      }
+
+      if (tipoVigencia === "TODOS") {
+        payload.mesReferencia = undefined;
+        payload.anoReferencia = undefined;
+        payload.dataInicio = undefined;
+        payload.dataFim = undefined;
+      }
 
       if (isEdit && initialData?.id) {
         await regrasPercentuaisApi.atualizar(initialData.id, payload);
@@ -124,7 +182,9 @@ export function RegraPercentualDialog({
     !nome.trim() ||
     !percentual ||
     Number(percentual) <= 0 ||
-    (basePercentual === "CATEGORIA_RENDA" && !categoriaId);
+    (basePercentual === "CATEGORIA_RENDA" && !categoriaId) ||
+    (tipoVigencia === "MES" && (!mesReferencia || !anoReferencia)) ||
+    (tipoVigencia === "PERIODO" && (!dataInicio || !dataFim));
 
   return (
     <Dialog
@@ -170,6 +230,77 @@ export function RegraPercentualDialog({
 
           <div className="grid gap-2">
             <Label>Base do cálculo</Label>
+
+            <div className="grid gap-2">
+              <Label>Vigência</Label>
+
+              <Select
+                value={tipoVigencia}
+                onValueChange={(v: any) => setTipoVigencia(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos os meses</SelectItem>
+
+                  <SelectItem value="MES">Mês específico</SelectItem>
+
+                  <SelectItem value="PERIODO">Intervalo de datas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {tipoVigencia === "MES" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Mês</Label>
+
+                  <Input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={mesReferencia}
+                    onChange={(e) => setMesReferencia(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Ano</Label>
+
+                  <Input
+                    type="number"
+                    value={anoReferencia}
+                    onChange={(e) => setAnoReferencia(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {tipoVigencia === "PERIODO" && (
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <Label>Data inicial</Label>
+
+                  <Input
+                    type="date"
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Data final</Label>
+
+                  <Input
+                    type="date"
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             <Select value={basePercentual} onValueChange={setBasePercentual}>
               <SelectTrigger>

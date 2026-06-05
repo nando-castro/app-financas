@@ -81,15 +81,32 @@ export const investimentosApi = {
   removerAporteProgramado: (id: number, aporteId: number) =>
     api.delete(`/investimentos/${id}/aportes/${aporteId}`),
 };
+export type RegraPercentualPayload = {
+  nome: string;
+  percentual: number;
+  basePercentual: "TOTAL_RENDAS" | "CATEGORIA_RENDA";
+  categoriaId?: number;
+  mesReferencia?: number;
+  anoReferencia?: number;
+  dataInicio?: string;
+  dataFim?: string;
+};
 
 export const regrasPercentuaisApi = {
-  listar: () => api.get("/regras-percentuais"),
+  listar: (mes?: number, ano?: number) =>
+    api.get("/regras-percentuais", {
+      params: {
+        ...(mes ? { mes } : {}),
+        ...(ano ? { ano } : {}),
+      },
+    }),
 
   buscar: (id: number) => api.get(`/regras-percentuais/${id}`),
 
-  criar: (payload: any) => api.post("/regras-percentuais", payload),
+  criar: (payload: RegraPercentualPayload) =>
+    api.post("/regras-percentuais", payload),
 
-  atualizar: (id: number, payload: any) =>
+  atualizar: (id: number, payload: RegraPercentualPayload) =>
     api.put(`/regras-percentuais/${id}`, payload),
 
   remover: (id: number) => api.delete(`/regras-percentuais/${id}`),
