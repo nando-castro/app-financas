@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import InvestimentosPage from "./pages/InvestimentosPage";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
+import RegrasPercentuaisPage from "./pages/RegrasPercentuaisPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -108,6 +109,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         />
 
         <Route
+          path="/regras-percentuais"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RegrasPercentuaisPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/configuracoes"
           element={
             <ProtectedRoute>
@@ -128,5 +140,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         duration={3000}
       />
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

@@ -82,4 +82,28 @@ export const investimentosApi = {
     api.delete(`/investimentos/${id}/aportes/${aporteId}`),
 };
 
+export const regrasPercentuaisApi = {
+  listar: () => api.get("/regras-percentuais"),
+
+  buscar: (id: number) => api.get(`/regras-percentuais/${id}`),
+
+  criar: (payload: any) => api.post("/regras-percentuais", payload),
+
+  atualizar: (id: number, payload: any) =>
+    api.put(`/regras-percentuais/${id}`, payload),
+
+  remover: (id: number) => api.delete(`/regras-percentuais/${id}`),
+
+  calcular: (id: number) => api.get(`/regras-percentuais/${id}/calcular`),
+};
+
+export const categoriasApi = {
+  listar: () => api.get("/categorias"),
+
+  buscarPorTipo: (tipo: "RENDA" | "DESPESA") =>
+    api.get("/categorias", {
+      params: { tipo },
+    }),
+};
+
 export default api;
