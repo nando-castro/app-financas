@@ -47,6 +47,8 @@ export function FinancaDialog({
     categoriaId: "",
     formaPagamento: "PIX" as FormaPagamento,
     cartaoId: "",
+
+    tipoLancamento: "VARIAVEL",
   });
 
   const isEditing = !!initialData?.id;
@@ -85,6 +87,8 @@ export function FinancaDialog({
           formaPagamento:
             (initialData.formaPagamento as FormaPagamento) || "PIX",
           cartaoId: initialData.cartaoId ? String(initialData.cartaoId) : "",
+
+          tipoLancamento: initialData.tipoLancamento || "VARIAVEL",
         });
 
         setUnica(!!di && di === df && !initialData.parcelas);
@@ -99,6 +103,7 @@ export function FinancaDialog({
           categoriaId: "",
           formaPagamento: "PIX",
           cartaoId: "",
+          tipoLancamento: "VARIAVEL",
         });
 
         setUnica(false);
@@ -214,6 +219,7 @@ export function FinancaDialog({
         parcelas,
         tipo,
         categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
+        tipoLancamento: form.tipoLancamento,
       };
 
       // formaPagamento e cartaoId (somente se DESPESA)
@@ -363,6 +369,45 @@ export function FinancaDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div>
+            <Label>Tipo do lançamento</Label>
+
+            <Select
+              value={form.tipoLancamento}
+              onValueChange={(v) => setForm({ ...form, tipoLancamento: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="FIXO">Fixo</SelectItem>
+
+                <SelectItem value="VARIAVEL">Variável</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* <div>
+            <Label>Cor</Label>
+
+            <div className="flex gap-2 items-center">
+              <Input
+                type="color"
+                value={form.cor}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    cor: e.target.value,
+                  })
+                }
+                className="w-16 h-10 p-1"
+              />
+
+              <span className="text-sm text-slate-500">{form.cor}</span>
+            </div>
+          </div> */}
 
           {/* Forma de pagamento (somente DESPESA) */}
           {canShowPagamento && (

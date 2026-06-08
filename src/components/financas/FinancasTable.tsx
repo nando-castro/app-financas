@@ -52,6 +52,7 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
               <th className="p-3 text-left">Nome</th>
               <th className="p-3 text-left">Valor</th>
               <th className="p-3 text-left hidden sm:table-cell">Categoria</th>
+              <th className="p-3 text-left">Tipo</th>
               <th className="p-3 text-left hidden md:table-cell">Início</th>
               <th className="p-3 text-left hidden md:table-cell">Fim</th>
               <th className="p-3 text-right">Ações</th>
@@ -70,6 +71,20 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
                 <td className="p-3 hidden sm:table-cell">
                   {f.categoria?.nome ?? "—"}
                 </td>
+                <td className="p-3">
+                  {f.tipoLancamento === "FIXO" ? "🔒" : "📈"}
+                </td>
+                {/* <td className="p-3">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      f.tipoLancamento === "FIXO"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-orange-100 text-orange-700"
+                    }`}
+                  >
+                    {f.tipoLancamento}
+                  </span>
+                </td> */}
                 <td className="p-3 hidden md:table-cell">
                   {formatarData(f.dataInicio)}
                 </td>
