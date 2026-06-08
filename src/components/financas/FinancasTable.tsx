@@ -17,6 +17,23 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [openEdit, setOpenEdit] = useState(false);
 
+  const [sortField, setSortField] = useState<string>("nome");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  function getSortIcon(field: string) {
+    if (sortField !== field) return "↕️";
+    return sortDirection === "asc" ? "⬆️" : "⬇️";
+  }
+
+  function handleSort(field: string) {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  }
+
   function formatarData(data: string) {
     if (!data) return "—";
 
@@ -43,23 +60,108 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
       </Card>
     );
 
+  const financasOrdenadas = [...financas].sort((a, b) => {
+    let valorA: any;
+    let valorB: any;
+
+    switch (sortField) {
+      case "nome":
+        valorA = a.nome;
+        valorB = b.nome;
+        break;
+
+      case "valor":
+        valorA = Number(a.valor);
+        valorB = Number(b.valor);
+        break;
+
+      case "categoria":
+        valorA = a.categoria?.nome || "";
+        valorB = b.categoria?.nome || "";
+        break;
+
+      case "tipoLancamento":
+        valorA = a.tipoLancamento;
+        valorB = b.tipoLancamento;
+        break;
+
+      case "dataInicio":
+        valorA = new Date(a.dataInicio).getTime();
+        valorB = new Date(b.dataInicio).getTime();
+        break;
+
+      case "dataFim":
+        valorA = new Date(a.dataFim).getTime();
+        valorB = new Date(b.dataFim).getTime();
+        break;
+
+      default:
+        return 0;
+    }
+
+    if (valorA < valorB) {
+      return sortDirection === "asc" ? -1 : 1;
+    }
+
+    if (valorA > valorB) {
+      return sortDirection === "asc" ? 1 : -1;
+    }
+
+    return 0;
+  });
+
   return (
     <>
       <div className="overflow-x-auto border border-slate-200 rounded-lg">
         <table className="min-w-full text-sm text-slate-700">
           <thead className="bg-slate-100 text-slate-900">
             <tr>
-              <th className="p-3 text-left">Nome</th>
-              <th className="p-3 text-left">Valor</th>
-              <th className="p-3 text-left hidden sm:table-cell">Categoria</th>
-              <th className="p-3 text-left">Tipo</th>
-              <th className="p-3 text-left hidden md:table-cell">Início</th>
-              <th className="p-3 text-left hidden md:table-cell">Fim</th>
+              <th
+                className="p-3 text-left cursor-pointer select-none"
+                onClick={() => handleSort("nome")}
+              >
+                Nome {getSortIcon("nome")}
+              </th>
+
+              <th
+                className="p-3 text-left cursor-pointer select-none"
+                onClick={() => handleSort("valor")}
+              >
+                Valor {getSortIcon("valor")}
+              </th>
+
+              <th
+                className="p-3 text-left cursor-pointer select-none hidden sm:table-cell"
+                onClick={() => handleSort("categoria")}
+              >
+                Categoria {getSortIcon("categoria")}
+              </th>
+
+              <th
+                className="p-3 text-left cursor-pointer select-none"
+                onClick={() => handleSort("tipoLancamento")}
+              >
+                Tipo {getSortIcon("tipoLancamento")}
+              </th>
+
+              <th
+                className="p-3 text-left cursor-pointer select-none hidden md:table-cell"
+                onClick={() => handleSort("dataInicio")}
+              >
+                Início {getSortIcon("dataInicio")}
+              </th>
+
+              <th
+                className="p-3 text-left cursor-pointer select-none hidden md:table-cell"
+                onClick={() => handleSort("dataFim")}
+              >
+                Fim {getSortIcon("dataFim")}
+              </th>
               <th className="p-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {financas.map((f: any) => (
+            {financasOrdenadas.map((f: any) => (
               <tr key={f.id} className="border-b hover:bg-slate-50">
                 <td className="p-3 font-medium">{f.nome}</td>
                 <td className="p-3">
@@ -72,19 +174,16 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
                   {f.categoria?.nome ?? "—"}
                 </td>
                 <td className="p-3">
-                  {f.tipoLancamento === "FIXO" ? "🔒" : "📈"}
-                </td>
-                {/* <td className="p-3">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
                       f.tipoLancamento === "FIXO"
                         ? "bg-blue-100 text-blue-700"
-                        : "bg-orange-100 text-orange-700"
+                        : "bg-amber-100 text-amber-700"
                     }`}
                   >
                     {f.tipoLancamento}
                   </span>
-                </td> */}
+                </td>
                 <td className="p-3 hidden md:table-cell">
                   {formatarData(f.dataInicio)}
                 </td>
