@@ -98,11 +98,75 @@ export default function Dashboard() {
   const despesas = Number(resumo.totalDespesas ?? 0);
   const saldo = Number(resumo.saldo ?? salario - despesas);
 
+  const tipoLancamento = resumo.tipoLancamento || {};
+
+  const rendasFixas = Number(tipoLancamento.rendasFixas || 0);
+  const rendasVariaveis = Number(tipoLancamento.rendasVariaveis || 0);
+
+  const despesasFixas = Number(tipoLancamento.despesasFixas || 0);
+  const despesasVariaveis = Number(tipoLancamento.despesasVariaveis || 0);
+
+  const dadosTipoLancamento = [
+    {
+      nome: "Rendas Fixas",
+      valor: rendasFixas,
+      cor: "#16A34A",
+    },
+    {
+      nome: "Rendas Variáveis",
+      valor: rendasVariaveis,
+      cor: "#4ADE80",
+    },
+    {
+      nome: "Despesas Fixas",
+      valor: despesasFixas,
+      cor: "#DC2626",
+    },
+    {
+      nome: "Despesas Variáveis",
+      valor: despesasVariaveis,
+      cor: "#FB923C",
+    },
+  ].filter((item) => item.valor > 0);
+
+  const dadosRendas = [
+    {
+      categoria: "Fixas",
+      valor: rendasFixas,
+    },
+    {
+      categoria: "Variáveis",
+      valor: rendasVariaveis,
+    },
+  ].filter((item) => item.valor > 0);
+
+  const dadosDespesas = [
+    {
+      categoria: "Fixas",
+      valor: despesasFixas,
+    },
+    {
+      categoria: "Variáveis",
+      valor: despesasVariaveis,
+    },
+  ].filter((item) => item.valor > 0);
+
   const percentualDespesa =
     salario > 0 ? Number(((despesas / salario) * 100).toFixed(2)) : 0;
 
   const percentualSaldo =
     salario > 0 ? Number(((saldo / salario) * 100).toFixed(2)) : 0;
+
+  const percentualRendasFixas = salario > 0 ? (rendasFixas / salario) * 100 : 0;
+
+  const percentualRendasVariaveis =
+    salario > 0 ? (rendasVariaveis / salario) * 100 : 0;
+
+  const percentualDespesasFixas =
+    despesas > 0 ? (despesasFixas / despesas) * 100 : 0;
+
+  const percentualDespesasVariaveis =
+    despesas > 0 ? (despesasVariaveis / despesas) * 100 : 0;
 
   const dadosComparativo = [
     {
@@ -203,6 +267,72 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="text-2xl font-semibold text-slate-600">
             {resumo.percentualEconomia}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-green-600">
+          <CardHeader>
+            <CardTitle className="text-sm">💰 Rendas Fixas</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatarMoeda(rendasFixas)}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-1">
+              {percentualRendasFixas.toFixed(1)}% das rendas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-emerald-400">
+          <CardHeader>
+            <CardTitle className="text-sm">📈 Rendas Variáveis</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-500">
+              {formatarMoeda(rendasVariaveis)}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-1">
+              {percentualRendasVariaveis.toFixed(1)}% das rendas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-600">
+          <CardHeader>
+            <CardTitle className="text-sm">🧾 Despesas Fixas</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatarMoeda(despesasFixas)}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-1">
+              {percentualDespesasFixas.toFixed(1)}% das despesas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader>
+            <CardTitle className="text-sm">🛒 Despesas Variáveis</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-500">
+              {formatarMoeda(despesasVariaveis)}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-1">
+              {percentualDespesasVariaveis.toFixed(1)}% das despesas
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -444,6 +574,198 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>💙 Lançamentos Fixos</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">
+              {formatarMoeda(tipoLancamento.totalFixo || 0)}
+            </div>
+
+            <div className="mt-3 text-sm text-slate-500">
+              Rendas: {formatarMoeda(tipoLancamento.rendasFixas || 0)}
+            </div>
+
+            <div className="text-sm text-slate-500">
+              Despesas: {formatarMoeda(tipoLancamento.despesasFixas || 0)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>🟠 Lançamentos Variáveis</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">
+              {formatarMoeda(tipoLancamento.totalVariavel || 0)}
+            </div>
+
+            <div className="mt-3 text-sm text-slate-500">
+              Rendas: {formatarMoeda(tipoLancamento.rendasVariaveis || 0)}
+            </div>
+
+            <div className="text-sm text-slate-500">
+              Despesas: {formatarMoeda(tipoLancamento.despesasVariaveis || 0)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribuição Financeira do Mês</CardTitle>
+        </CardHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>💰 Composição das Rendas</CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={dadosRendas}
+                    dataKey="valor"
+                    nameKey="categoria"
+                    outerRadius={100}
+                    label={({ categoria, percent }) =>
+                      `${categoria} ${(percent * 100).toFixed(1)}%`
+                    }
+                  >
+                    <Cell fill="#16A34A" />
+                    <Cell fill="#4ADE80" />
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value: number) => formatarMoeda(value)}
+                  />
+
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>🧾 Composição das Despesas</CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={dadosDespesas}
+                    dataKey="valor"
+                    nameKey="categoria"
+                    outerRadius={100}
+                    label={({ categoria, percent }) =>
+                      `${categoria} ${(percent * 100).toFixed(1)}%`
+                    }
+                  >
+                    <Cell fill="#DC2626" />
+                    <Cell fill="#FB923C" />
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value: number) => formatarMoeda(value)}
+                  />
+
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={dadosTipoLancamento}
+                dataKey="valor"
+                nameKey="nome"
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
+                label={({ nome, percent }) =>
+                  `${nome} ${(percent * 100).toFixed(1)}%`
+                }
+              >
+                {dadosTipoLancamento.map((item) => (
+                  <Cell key={item.nome} fill={item.cor} />
+                ))}
+              </Pie>
+
+              <Tooltip
+                formatter={(value: number, _, props) => {
+                  const total = dadosTipoLancamento.reduce(
+                    (acc, item) => acc + item.valor,
+                    0,
+                  );
+
+                  const percentual =
+                    total > 0
+                      ? ((Number(value) / total) * 100).toFixed(2)
+                      : "0";
+
+                  return [
+                    `${formatarMoeda(Number(value))} (${percentual}%)`,
+                    props.payload.nome,
+                  ];
+                }}
+              />
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-2">
+                {dadosTipoLancamento.map((item) => {
+                  const total = dadosTipoLancamento.reduce(
+                    (acc, i) => acc + i.valor,
+                    0,
+                  );
+
+                  const percentual =
+                    total > 0 ? ((item.valor / total) * 100).toFixed(1) : "0";
+
+                  return (
+                    <div
+                      key={item.nome}
+                      className="flex justify-between items-center border rounded-lg p-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.cor }}
+                        />
+                        <span>{item.nome}</span>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="font-semibold">
+                          {formatarMoeda(item.valor)}
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                          {percentual}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
