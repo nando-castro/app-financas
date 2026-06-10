@@ -32,6 +32,19 @@ export function FinancaDialog({
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [categoriaBusca, setCategoriaBusca] = useState("");
+  const [mostrarCategorias, setMostrarCategorias] = useState(false);
+
+  const categoriasFiltradas = categorias
+    .filter((cat) =>
+      cat.nome.toLowerCase().includes(categoriaBusca.toLowerCase()),
+    )
+    .sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR", {
+        sensitivity: "base",
+      }),
+    );
+
   // Única
   const [unica, setUnica] = useState(false);
 
@@ -108,6 +121,8 @@ export function FinancaDialog({
 
         setUnica(false);
         setRepetirAteDataFim(false);
+        setCategoriaBusca("");
+        setMostrarCategorias(false);
       }
     }
   }, [open, tipo]);
@@ -347,27 +362,41 @@ export function FinancaDialog({
           </div>
 
           {/* Categoria */}
-          <div>
+          <div className="relative">
             <Label>Categoria</Label>
-            <Select
-              value={form.categoriaId}
-              onValueChange={(v) => setForm({ ...form, categoriaId: v })}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={`Selecione uma categoria de ${
-                    tipo === "RENDA" ? "renda" : "despesa"
-                  }`}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((cat) => (
-                  <SelectItem key={cat.id} value={String(cat.id)}>
+
+            <Input
+              value={categoriaBusca}
+              placeholder="Digite para pesquisar..."
+              onFocus={() => setMostrarCategorias(true)}
+              onChange={(e) => {
+                setCategoriaBusca(e.target.value);
+                setMostrarCategorias(true);
+                setForm({ ...form, categoriaId: "" });
+              }}
+            />
+
+            {mostrarCategorias && categoriasFiltradas.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md max-h-48 overflow-y-auto">
+                {categoriasFiltradas.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left hover:bg-slate-100"
+                    onClick={() => {
+                      setCategoriaBusca(cat.nome);
+                      setForm({
+                        ...form,
+                        categoriaId: String(cat.id),
+                      });
+                      setMostrarCategorias(false);
+                    }}
+                  >
                     {cat.nome}
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
           </div>
 
           <div>

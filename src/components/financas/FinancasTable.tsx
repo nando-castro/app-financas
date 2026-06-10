@@ -17,7 +17,7 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [openEdit, setOpenEdit] = useState(false);
 
-  const [sortField, setSortField] = useState<string>("nome");
+  const [sortField, setSortField] = useState<string>("criadoEm");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   function getSortIcon(field: string) {
@@ -93,6 +93,11 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
       case "dataFim":
         valorA = new Date(a.dataFim).getTime();
         valorB = new Date(b.dataFim).getTime();
+        break;
+      
+      case "criadoEm":
+        valorA = new Date(a.createdAt).getTime();
+        valorB = new Date(b.createdAt).getTime();
         break;
 
       default:
