@@ -123,4 +123,33 @@ export const categoriasApi = {
     }),
 };
 
+export const estatisticasApi = {
+  mensal: (mes?: number, ano?: number) =>
+    api.get("/financas/estatisticas/mensal", {
+      params: { mes, ano },
+    }),
+
+  anual: (ano?: number) =>
+    api.get("/financas/estatisticas/anual", {
+      params: { ano },
+    }),
+
+  tendencia: () => api.get("/financas/estatisticas/tendencia"),
+
+  categorias: (mes?: number, ano?: number) =>
+    api.get("/financas/estatisticas/categorias", {
+      params: { mes, ano },
+    }),
+
+  categoriasTipoLancamento: (mes?: number, ano?: number) =>
+    api.get("/financas/estatisticas/categorias-tipo-lancamento", {
+      params: { mes, ano },
+    }),
+
+  comparativoSalarioDespesa: (mes?: number, ano?: number) =>
+    api.get("/financas/estatisticas/comparativo-salario-despesa", {
+      params: { mes, ano },
+    }),
+};
+
 export default api;

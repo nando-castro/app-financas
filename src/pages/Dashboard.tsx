@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [resumo, setResumo] = useState<any>(null);
   const [categoriasRenda, setCategoriasRenda] = useState<any[]>([]);
   const [categoriasDespesa, setCategoriasDespesa] = useState<any[]>([]);
+  const [categoriasTipoLancamento, setCategoriasTipoLancamento] = useState<
+    any[]
+  >([]);
   const { theme } = useTheme();
 
   // Estado para o mês e ano selecionados
@@ -71,10 +74,19 @@ export default function Dashboard() {
     setCategoriasDespesa(despesas);
   }
 
+  async function carregarCategoriasTipoLancamento(m: number, a: number) {
+    const { data } = await api.get(
+      `/financas/estatisticas/categorias-tipo-lancamento?mes=${m}&ano=${a}`,
+    );
+
+    setCategoriasTipoLancamento(data);
+  }
+
   // 🔹 Atualizar tudo ao alterar mês/ano
   useEffect(() => {
     carregarResumo(mes, ano);
     carregarCategorias(mes, ano);
+    carregarCategoriasTipoLancamento(mes, ano);
   }, [mes, ano]);
 
   // 🔹 Alterar mês e ano manualmente
@@ -269,6 +281,71 @@ export default function Dashboard() {
             {resumo.percentualEconomia}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <p className="text-sm text-green-700">💰 Total de rendas</p>
+
+          <h3 className="text-2xl font-bold text-green-600 mt-1">
+            {formatarMoeda(salario)}
+          </h3>
+        </div>
+
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-700">🧾 Total de despesas</p>
+
+          <h3 className="text-2xl font-bold text-red-600 mt-1">
+            {formatarMoeda(despesas)}
+          </h3>
+
+          <p className="text-xs mt-2 text-red-500">
+            {percentualDespesa.toFixed(1)}% da renda
+          </p>
+        </div>
+
+        <div
+          className={`rounded-xl p-4 border ${
+            saldo >= 0
+              ? "border-blue-200 bg-blue-50"
+              : "border-red-200 bg-red-50"
+          }`}
+        >
+          <p className="text-sm">🏦 Saldo disponível</p>
+
+          <h3
+            className={`text-2xl font-bold mt-1 ${
+              saldo >= 0 ? "text-blue-600" : "text-red-600"
+            }`}
+          >
+            {formatarMoeda(saldo)}
+          </h3>
+
+          <p className="text-xs mt-2">{percentualSaldo.toFixed(1)}% da renda</p>
+        </div>
+      </div>
+
+      <div
+        className={`mt-6 rounded-xl border-l-4 p-5 ${
+          saldo >= 0
+            ? "border-l-green-500 bg-green-50"
+            : "border-l-red-500 bg-red-50"
+        }`}
+      >
+        <h4 className="font-semibold mb-2">📊 Análise Financeira</h4>
+
+        {saldo > 0 ? (
+          <p>
+            Você gastou <strong>{percentualDespesa.toFixed(1)}%</strong> da sua
+            renda mensal e ainda possui <strong>{formatarMoeda(saldo)}</strong>{" "}
+            disponíveis para investir, guardar ou utilizar em objetivos futuros.
+          </p>
+        ) : (
+          <p className="text-red-600">
+            Suas despesas ultrapassaram sua renda em{" "}
+            <strong>{formatarMoeda(Math.abs(saldo))}</strong>.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -890,6 +967,119 @@ export default function Dashboard() {
             </>
           )}
         </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">
+                Categorias Fixas x Variáveis
+              </CardTitle>
+
+              <p className="text-sm text-slate-500 mt-1">
+                Visão geral das suas finanças neste período
+              </p>
+            </div>
+
+            <div className="text-sm text-slate-500">
+              {dayjs()
+                .month(mes - 1)
+                .format("MMMM")}{" "}
+              / {ano}
+            </div>
+          </div>
+        </CardHeader>
+
+        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+            <p className="text-sm text-green-700">Total de rendas</p>
+
+            <h3 className="text-4xl font-bold text-green-600 mt-2">
+              {formatarMoeda(salario)}
+            </h3>
+
+            <p className="text-sm text-green-600 mt-2">100% das entradas</p>
+          </div>
+
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <p className="text-sm text-red-700">Total de despesas</p>
+
+            <h3 className="text-4xl font-bold text-red-600 mt-2">
+              {formatarMoeda(despesas)}
+            </h3>
+
+            <p className="text-sm text-red-500 mt-2">
+              {percentualDespesa.toFixed(1)}% das rendas
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+            <p className="text-sm text-blue-700">Saldo disponível</p>
+
+            <h3 className="text-4xl font-bold text-blue-600 mt-2">
+              {formatarMoeda(saldo)}
+            </h3>
+
+            <p className="text-sm text-blue-500 mt-2">
+              {percentualSaldo.toFixed(1)}% das rendas
+            </p>
+          </div>
+        </div> */}
+
+        <div className="mt-8 rounded-2xl border overflow-hidden">
+          <div className="bg-slate-50 px-6 py-4 border-b">
+            <h3 className="font-semibold">Detalhamento por Categoria</h3>
+
+            <p className="text-sm text-slate-500">
+              Distribuição entre despesas fixas e variáveis
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {categoriasTipoLancamento.map((item) => (
+              <div
+                key={item.categoria}
+                className="rounded-xl border p-4 bg-white dark:bg-slate-900"
+              >
+                <div className="flex justify-between mb-2">
+                  <span className="font-medium">{item.categoria}</span>
+
+                  <span className="text-sm text-slate-500">
+                    {item.percentualFixo}% fixo • {item.percentualVariavel}%
+                    variável
+                  </span>
+                </div>
+
+                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-blue-600"
+                    style={{
+                      width: `${item.percentualFixo}%`,
+                    }}
+                  />
+
+                  <div
+                    className="bg-orange-500"
+                    style={{
+                      width: `${item.percentualVariavel}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="flex justify-between mt-2 text-xs">
+                  <span className="text-blue-600 font-medium">
+                    🔵 {item.percentualFixo}% Fixo
+                  </span>
+
+                  <span className="text-orange-500 font-medium">
+                    🟠 {item.percentualVariavel}% Variável
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </Card>
 
       {/* Mensagem final */}
