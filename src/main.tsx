@@ -9,6 +9,7 @@ import CartoesPage from "./pages/CartoesPage";
 import CategoriasPage from "./pages/CategoriasPage";
 import ChecklistMensal from "./pages/ChecklistMensal";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
+import ComparativoMensalPage from "./pages/ComparativoMensalPage";
 import Dashboard from "./pages/Dashboard";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import FinancasPage from "./pages/FinancasPage";
@@ -81,6 +82,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute>
               <Layout>
                 <EstatisticasPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/comparativo"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ComparativoMensalPage />
               </Layout>
             </ProtectedRoute>
           }

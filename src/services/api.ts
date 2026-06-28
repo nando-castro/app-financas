@@ -150,6 +150,11 @@ export const estatisticasApi = {
     api.get("/financas/estatisticas/comparativo-salario-despesa", {
       params: { mes, ano },
     }),
+
+  comparativoCategorias: (mes?: number, ano?: number) =>
+    api.get("/financas/estatisticas/comparativo-categorias", {
+      params: { mes, ano },
+    }),
 };
 
 export default api;
