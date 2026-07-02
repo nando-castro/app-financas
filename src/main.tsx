@@ -19,6 +19,7 @@ import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
 import RegrasPercentuaisPage from "./pages/RegrasPercentuaisPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import EarningsPlanningPage from "./pages/EarningsPlanningPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -60,6 +61,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute>
               <Layout>
                 <ChecklistMensal />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/planejamento-ganhos"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <EarningsPlanningPage />
               </Layout>
             </ProtectedRoute>
           }
