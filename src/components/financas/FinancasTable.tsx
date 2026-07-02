@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import api from "@/services/api";
+import { foiAdicionadaHoje, venceHoje } from "@/lib/financasDia";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { FinancaDialog } from "./FinancaDialog";
@@ -115,6 +116,22 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
     return 0;
   });
 
+  function corDaLinha(financa: any) {
+    if (foiAdicionadaHoje(financa)) {
+      return tipo === "RENDA"
+        ? "bg-blue-100 hover:bg-blue-200"
+        : "bg-orange-100 hover:bg-orange-200";
+    }
+
+    if (venceHoje(financa)) {
+      return tipo === "RENDA"
+        ? "bg-green-100 hover:bg-green-200"
+        : "bg-red-100 hover:bg-red-200";
+    }
+
+    return "hover:bg-slate-50";
+  }
+
   return (
     <>
       <div className="overflow-x-auto border border-slate-200 rounded-lg">
@@ -167,7 +184,7 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
           </thead>
           <tbody>
             {financasOrdenadas.map((f: any) => (
-              <tr key={f.id} className="border-b hover:bg-slate-50">
+              <tr key={f.id} className={`border-b transition-colors ${corDaLinha(f)}`}>
                 <td className="p-3 font-medium">{f.nome}</td>
                 <td className="p-3">
                   R${" "}

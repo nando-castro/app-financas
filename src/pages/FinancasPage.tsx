@@ -1,8 +1,10 @@
 import { FinancaDialog } from "@/components/financas/FinancaDialog";
 import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Filter, PlusCircle } from "lucide-react";
+import { venceHoje } from "@/lib/financasDia";
+import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { financasApi } from "../services/api";
 
@@ -11,6 +13,7 @@ type TipoFinanca = "RENDA" | "DESPESA";
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
+  const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0 });
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
   const [open, setOpen] = useState(false);
@@ -32,6 +35,29 @@ export default function FinancasPage() {
     });
 
     setFinancas(data);
+  }
+
+  async function buscarResumoDia() {
+    const agora = new Date();
+    const params = { mes: agora.getMonth() + 1, ano: agora.getFullYear() };
+    const [respostaRendas, respostaDespesas] = await Promise.all([
+      api.get("/financas/tipo/RENDA", { params }),
+      api.get("/financas/tipo/DESPESA", { params }),
+    ]);
+
+    const somarHoje = (itens: any[]) =>
+      itens
+        .filter((item) => venceHoje(item, agora))
+        .reduce((total, item) => total + Number(item.valor || 0), 0);
+
+    setResumoDia({
+      rendas: somarHoje(respostaRendas.data),
+      despesas: somarHoje(respostaDespesas.data),
+    });
+  }
+
+  async function atualizarTela() {
+    await Promise.all([buscarFinancas(), buscarResumoDia()]);
   }
 
   async function buscarCategorias() {
@@ -62,6 +88,13 @@ export default function FinancasPage() {
   useEffect(() => {
     buscarFinancas();
   }, [tipo, mes, ano, categoriaId]);
+
+  useEffect(() => {
+    buscarResumoDia();
+  }, []);
+
+  const formatarMoeda = (valor: number) =>
+    valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const meses = [
     "Janeiro",
@@ -151,6 +184,36 @@ export default function FinancasPage() {
             Nova {tipo === "RENDA" ? "Renda" : "Despesa"}
           </Button>
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="border-emerald-200 bg-emerald-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-800">Rendas do dia</CardTitle>
+            <ArrowUpCircle className="h-5 w-5 text-emerald-600" />
+          </CardHeader>
+          <CardContent className="text-2xl font-bold text-emerald-700">
+            {formatarMoeda(resumoDia.rendas)}
+          </CardContent>
+        </Card>
+        <Card className="border-red-200 bg-red-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-800">Gastos do dia</CardTitle>
+            <ArrowDownCircle className="h-5 w-5 text-red-600" />
+          </CardHeader>
+          <CardContent className="text-2xl font-bold text-red-700">
+            {formatarMoeda(resumoDia.despesas)}
+          </CardContent>
+        </Card>
+        <Card className="border-blue-200 bg-blue-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-blue-800">Diferença do dia</CardTitle>
+            <Scale className="h-5 w-5 text-blue-600" />
+          </CardHeader>
+          <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700" : "text-blue-700"}`}>
+            {formatarMoeda(resumoDia.rendas - resumoDia.despesas)}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtros */}
@@ -251,7 +314,7 @@ export default function FinancasPage() {
           <FinancasTable
             financas={financasFiltradas}
             tipo="RENDA"
-            onRefresh={buscarFinancas}
+            onRefresh={atualizarTela}
           />
         </TabsContent>
 
@@ -259,7 +322,7 @@ export default function FinancasPage() {
           <FinancasTable
             financas={financasFiltradas}
             tipo="DESPESA"
-            onRefresh={buscarFinancas}
+            onRefresh={atualizarTela}
           />
         </TabsContent>
       </Tabs>
@@ -268,7 +331,7 @@ export default function FinancasPage() {
         open={open}
         setOpen={setOpen}
         tipo={tipo}
-        onSave={buscarFinancas}
+        onSave={atualizarTela}
       />
     </div>
   );
