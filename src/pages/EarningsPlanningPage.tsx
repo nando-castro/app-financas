@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { EarningPlanningCalendar } from "@/components/earning-planning/EarningPlanningCalendar";
 import { EarningPlanningSummary } from "@/components/earning-planning/EarningPlanningSummary";
 import { MonthNavigator } from "@/components/earning-planning/MonthNavigator";
+import { DailyValueBulkApply } from "@/components/earning-planning/DailyValueBulkApply";
 import { earningPlanningService } from "@/services/earningPlanningService";
 import type { DailyEarningPlanning } from "@/types/earningPlanning";
 import { CalendarRange, LoaderCircle, Save } from "lucide-react";
@@ -42,6 +43,22 @@ export default function EarningsPlanningPage() {
     setDays((current) => current.map((day) => day.day === updated.day ? updated : day));
   }
 
+  function addValueToEveryDay(field: "plannedIncome" | "plannedExpense", value: number) {
+    setDays((current) => current.map((day) => {
+      const updated = { ...day, [field]: Number((day[field] + value).toFixed(2)) };
+      return { ...updated, balance: updated.plannedIncome - updated.plannedExpense };
+    }));
+    toast.success(`${field === "plannedIncome" ? "Ganho" : "Gasto"} adicionado a todos os dias.`);
+  }
+
+  function removeValueFromEveryDay(field: "plannedIncome" | "plannedExpense", value: number) {
+    setDays((current) => current.map((day) => {
+      const updated = { ...day, [field]: Number(Math.max(0, day[field] - value).toFixed(2)) };
+      return { ...updated, balance: updated.plannedIncome - updated.plannedExpense };
+    }));
+    toast.success(`${field === "plannedIncome" ? "Ganho" : "Gasto"} removido de todos os dias.`);
+  }
+
   async function save() {
     setSaving(true);
     try {
@@ -65,7 +82,13 @@ export default function EarningsPlanningPage() {
       <div className="flex flex-col gap-2 sm:flex-row"><MonthNavigator month={month} year={year} onPrevious={() => moveMonth(-1)} onNext={() => moveMonth(1)} onToday={goToday} /><Button onClick={save} disabled={loading || saving} className="gap-2 bg-blue-600 hover:bg-blue-700">{saving ? <LoaderCircle className="animate-spin" size={17} /> : <Save size={17} />}Salvar Planejamento</Button></div>
     </header>
     <EarningPlanningSummary days={days} />
+    <DailyValueBulkApply
+      disabled={loading || saving}
+      onApplyIncome={(value) => addValueToEveryDay("plannedIncome", value)}
+      onApplyExpense={(value) => addValueToEveryDay("plannedExpense", value)}
+      onRemoveIncome={(value) => removeValueFromEveryDay("plannedIncome", value)}
+      onRemoveExpense={(value) => removeValueFromEveryDay("plannedExpense", value)}
+    />
     {loading ? <div className="flex min-h-80 items-center justify-center text-slate-500"><LoaderCircle className="mr-2 animate-spin" size={21} />Carregando planejamento...</div> : <EarningPlanningCalendar year={year} month={month} days={days} onChange={updateDay} />}
   </div>;
 }
-
