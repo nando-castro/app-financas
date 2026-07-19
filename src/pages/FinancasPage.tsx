@@ -39,6 +39,25 @@ function normalizarData(valor?: string | Date | null) {
   return Number.isNaN(data.getTime()) ? "" : dataLocalISO(data);
 }
 
+function dataLancamentoNoMes(financa: any, mes: number, ano: number) {
+  const inicio = normalizarData(financa.dataInicio);
+
+  if (!inicio) return "";
+
+  const fim = normalizarData(financa.dataFim);
+  const primeiroDiaMes = `${ano}-${String(mes).padStart(2, "0")}-01`;
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const ultimoDiaMes = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+
+  if (inicio > ultimoDiaMes || (fim && fim < primeiroDiaMes)) {
+    return "";
+  }
+
+  const diaLancamento = Math.min(Number(inicio.slice(8, 10)), ultimoDia);
+
+  return `${ano}-${String(mes).padStart(2, "0")}-${String(diaLancamento).padStart(2, "0")}`;
+}
+
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
@@ -81,7 +100,7 @@ export default function FinancasPage() {
     ]);
 
     const dentroDoIntervalo = (item: any) => {
-      const data = normalizarData(item.dataInicio);
+      const data = dataLancamentoNoMes(item, params.mes, params.ano);
 
       if (!data) return false;
 
@@ -115,7 +134,7 @@ export default function FinancasPage() {
     const rendasFuturasNoPeriodo = temIntervalo
       ? respostaRendas.data
           .filter((item: any) => {
-            const data = normalizarData(item.dataInicio);
+            const data = dataLancamentoNoMes(item, params.mes, params.ano);
 
             return data && data > dataHoje && dentroDoIntervalo(item);
           })
@@ -200,7 +219,7 @@ export default function FinancasPage() {
       return true;
     }
 
-    const data = normalizarData(financa.dataInicio);
+    const data = dataLancamentoNoMes(financa, mes, ano);
 
     const atendeInicio = !dataInicio || data >= dataInicio;
     const atendeFim = !dataFim || data <= dataFim;
