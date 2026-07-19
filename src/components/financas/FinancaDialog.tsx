@@ -75,6 +75,7 @@ export function FinancaDialog({
     !repetirAteDataFim &&
     Number.isInteger(Number(form.parcelas)) &&
     Number(form.parcelas) > 0;
+  const repetirLancamento = !unica;
 
   function calcularDataFimPorParcelas(
     dataInicio: string,
@@ -143,7 +144,7 @@ export function FinancaDialog({
           tipoLancamento: "VARIAVEL",
         });
 
-        setUnica(false);
+        setUnica(true);
         setRepetirAteDataFim(false);
         setCategoriaBusca("");
         setMostrarCategorias(false);
@@ -531,28 +532,6 @@ export function FinancaDialog({
             </div>
           )}
 
-          {/* Única */}
-          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
-            <input
-              type="checkbox"
-              checked={unica}
-              onChange={(e) => setUnica(e.target.checked)}
-              className="h-4 w-4 accent-slate-900"
-            />
-            <span>É única (Data fim = Data início)</span>
-          </label>
-
-          {/* Criar um para cada mês até a data fim */}
-          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
-            <input
-              type="checkbox"
-              checked={repetirAteDataFim}
-              onChange={(e) => setRepetirAteDataFim(e.target.checked)}
-              className="h-4 w-4 accent-slate-900"
-            />
-            <span>Criar um para cada mês até a data fim</span>
-          </label>
-
           {/* Datas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
@@ -604,37 +583,68 @@ export function FinancaDialog({
             </div>
           </div>
 
-          {/* Parcelas */}
-          <div>
-            <Label>Parcelas (opcional)</Label>
-            <Input
-              type="number"
-              value={form.parcelas}
+          {/* Repetir lançamento */}
+          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={repetirLancamento}
               onChange={(e) => {
-                const parcelas = e.target.value;
+                const vaiRepetir = e.target.checked;
 
-                setForm((prev) => ({
-                  ...prev,
-                  parcelas,
-                  dataFim: calcularDataFimPorParcelas(
-                    prev.dataInicio,
-                    parcelas,
-                  ),
-                }));
+                setUnica(!vaiRepetir);
+                if (!vaiRepetir) {
+                  setRepetirAteDataFim(false);
+                }
               }}
-              placeholder="Ex: 12"
-              disabled={unica || repetirAteDataFim}
-              className={unica || repetirAteDataFim ? "opacity-70" : ""}
+              className="h-4 w-4 accent-slate-900"
             />
-            <p className="text-xs text-slate-500 mt-1">
-              Se informar parcelas, a data fim será calculada automaticamente.
-              {unica
-                ? " (Desabilitado porque é única.)"
-                : repetirAteDataFim
+            <span>Repetir este lançamento</span>
+          </label>
+
+          {/* Criar um para cada mês até a data fim */}
+          {repetirLancamento && (
+            <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={repetirAteDataFim}
+                onChange={(e) => setRepetirAteDataFim(e.target.checked)}
+                className="h-4 w-4 accent-slate-900"
+              />
+              <span>Criar um para cada mês até a data fim</span>
+            </label>
+          )}
+
+          {/* Parcelas */}
+          {repetirLancamento && (
+            <div>
+              <Label>Parcelas (opcional)</Label>
+              <Input
+                type="number"
+                value={form.parcelas}
+                onChange={(e) => {
+                  const parcelas = e.target.value;
+
+                  setForm((prev) => ({
+                    ...prev,
+                    parcelas,
+                    dataFim: calcularDataFimPorParcelas(
+                      prev.dataInicio,
+                      parcelas,
+                    ),
+                  }));
+                }}
+                placeholder="Ex: 12"
+                disabled={repetirAteDataFim}
+                className={repetirAteDataFim ? "opacity-70" : ""}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Se informar parcelas, a data fim será calculada automaticamente.
+                {repetirAteDataFim
                   ? " (Desabilitado porque será criada uma por mês até a data fim.)"
                   : ""}
-            </p>
-          </div>
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-4 gap-2">
@@ -646,7 +656,7 @@ export function FinancaDialog({
             Cancelar
           </Button>
 
-          {!isEditing && !repetirAteDataFim && (
+          {!isEditing && repetirLancamento && !repetirAteDataFim && (
             <Button
               type="button"
               variant="secondary"
