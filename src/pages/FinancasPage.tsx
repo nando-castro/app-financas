@@ -99,8 +99,6 @@ export default function FinancasPage() {
         .filter((item) => venceHoje(item, agora))
         .reduce((total, item) => total + Number(item.valor || 0), 0);
 
-    const dataHoje = dataLocalISO(agora);
-    const dataSaldoAcumulado = temIntervalo ? fim || inicio : dataHoje;
     const itensChecklist: ChecklistItem[] = respostaChecklist.data?.itens ?? [];
     const saldoMarcado = itensChecklist
       .filter((item) => item.checked)
@@ -109,33 +107,25 @@ export default function FinancasPage() {
 
         return item.tipo === "RENDA" ? total + valor : total - valor;
       }, 0);
-    const rendasMarcadasAteDataSaldo = itensChecklist
-      .filter((item) => item.checked && item.tipo === "RENDA" && normalizarData(item.dataLancamento) <= dataSaldoAcumulado)
-      .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const despesasMarcadasAntesDaDataSaldo = itensChecklist
-      .filter((item) => item.checked && item.tipo === "DESPESA" && normalizarData(item.dataLancamento) < dataSaldoAcumulado)
-      .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const rendaProjetadaNaoMarcada = temIntervalo
-      ? Math.max(0, somarIntervalo(respostaRendas.data) - rendasMarcadasAteDataSaldo)
-      : 0;
-    const despesaProjetadaNaoMarcadaAntesDaData = temIntervalo
-      ? Math.max(
-          0,
-          respostaDespesas.data
-            .filter((item: any) => {
-              const data = normalizarData(item.dataInicio);
-
-              return data && data < dataSaldoAcumulado;
-            })
-            .reduce((total: number, item: any) => total + Number(item.valor || 0), 0) - despesasMarcadasAntesDaDataSaldo,
-        )
-      : 0;
     const saldoAnterior = Number(respostaEstatisticas.data?.saldoAnterior || 0);
-    const saldoAcumulado = saldoAnterior + saldoMarcado + rendaProjetadaNaoMarcada - despesaProjetadaNaoMarcadaAntesDaData;
+    const rendasResumo = temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data);
+    const despesasResumo = temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data);
+    const saldoAtual = saldoAnterior + saldoMarcado;
+    const dataHoje = dataLocalISO(agora);
+    const rendasFuturasNoPeriodo = temIntervalo
+      ? respostaRendas.data
+          .filter((item: any) => {
+            const data = normalizarData(item.dataInicio);
+
+            return data && data > dataHoje && dentroDoIntervalo(item);
+          })
+          .reduce((total: number, item: any) => total + Number(item.valor || 0), 0)
+      : 0;
+    const saldoAcumulado = temIntervalo ? saldoAtual + rendasFuturasNoPeriodo : saldoAtual;
 
     setResumoDia({
-      rendas: temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data),
-      despesas: temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data),
+      rendas: rendasResumo,
+      despesas: despesasResumo,
       saldoAcumulado,
     });
   }
