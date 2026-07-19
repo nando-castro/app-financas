@@ -70,6 +70,30 @@ export function FinancaDialog({
   const isCartao = isDespesa && form.formaPagamento === "CARTAO";
 
   const canShowPagamento = isDespesa; // forma de pagamento só faz sentido para despesa (ajuste se quiser para renda também)
+  const parcelasInformadas =
+    !unica &&
+    !repetirAteDataFim &&
+    Number.isInteger(Number(form.parcelas)) &&
+    Number(form.parcelas) > 0;
+
+  function calcularDataFimPorParcelas(
+    dataInicio: string,
+    parcelasInput: string,
+  ) {
+    const quantidadeParcelas = Number(parcelasInput);
+
+    if (
+      !dataInicio ||
+      !Number.isInteger(quantidadeParcelas) ||
+      quantidadeParcelas <= 0
+    ) {
+      return "";
+    }
+
+    return dayjs(dataInicio)
+      .add(quantidadeParcelas - 1, "month")
+      .format("YYYY-MM-DD");
+  }
 
   const cartaoLabel = useMemo(() => {
     const c = cartoes.find((x) => String(x.id) === String(form.cartaoId));
@@ -147,8 +171,16 @@ export function FinancaDialog({
         ...prev,
         dataFim: prev.dataInicio || "",
       }));
+      return;
     }
-  }, [form.dataInicio, unica, open]);
+
+    if (parcelasInformadas) {
+      setForm((prev) => ({
+        ...prev,
+        dataFim: calcularDataFimPorParcelas(prev.dataInicio, prev.parcelas),
+      }));
+    }
+  }, [form.dataInicio, parcelasInformadas, unica, open]);
 
   // Se trocar formaPagamento e não for cartão, limpa cartão
   useEffect(() => {
@@ -529,7 +561,18 @@ export function FinancaDialog({
                 type="date"
                 value={form.dataInicio}
                 onChange={(e) =>
-                  setForm({ ...form, dataInicio: e.target.value })
+                  setForm((prev) => ({
+                    ...prev,
+                    dataInicio: e.target.value,
+                    dataFim: unica
+                      ? e.target.value
+                      : parcelasInformadas
+                        ? calcularDataFimPorParcelas(
+                            e.target.value,
+                            prev.parcelas,
+                          )
+                        : prev.dataFim,
+                  }))
                 }
               />
             </div>
@@ -539,9 +582,15 @@ export function FinancaDialog({
                 type="date"
                 value={unica ? form.dataInicio : form.dataFim}
                 onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
-                disabled={unica}
-                className={unica ? "opacity-70" : ""}
+                disabled={unica || parcelasInformadas}
+                className={unica || parcelasInformadas ? "opacity-70" : ""}
               />
+              {parcelasInformadas && form.dataInicio && form.dataFim && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Calculada pelas {form.parcelas} parcelas a partir da data
+                  início.
+                </p>
+              )}
               {repetirAteDataFim && form.dataInicio && form.dataFim && (
                 <p className="text-xs text-slate-500 mt-1">
                   Serão gerados lançamentos mensais de {form.dataInicio} até{" "}
@@ -561,7 +610,18 @@ export function FinancaDialog({
             <Input
               type="number"
               value={form.parcelas}
-              onChange={(e) => setForm({ ...form, parcelas: e.target.value })}
+              onChange={(e) => {
+                const parcelas = e.target.value;
+
+                setForm((prev) => ({
+                  ...prev,
+                  parcelas,
+                  dataFim: calcularDataFimPorParcelas(
+                    prev.dataInicio,
+                    parcelas,
+                  ),
+                }));
+              }}
               placeholder="Ex: 12"
               disabled={unica || repetirAteDataFim}
               className={unica || repetirAteDataFim ? "opacity-70" : ""}
