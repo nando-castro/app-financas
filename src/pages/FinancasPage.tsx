@@ -10,6 +10,27 @@ import api, { financasApi } from "../services/api";
 
 type TipoFinanca = "RENDA" | "DESPESA";
 
+function normalizarData(valor?: string | Date | null) {
+  if (!valor) return "";
+  if (valor instanceof Date) return dataLocalISO(valor);
+
+  const texto = String(valor);
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+    return texto.slice(0, 10);
+  }
+
+  const dataBR = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+
+  if (dataBR) {
+    return `${dataBR[3]}-${dataBR[2]}-${dataBR[1]}`;
+  }
+
+  const data = new Date(texto);
+
+  return Number.isNaN(data.getTime()) ? "" : dataLocalISO(data);
+}
+
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
@@ -37,51 +58,74 @@ export default function FinancasPage() {
     setFinancas(data);
   }
 
-  async function buscarResumoDia() {
+  async function buscarResumoDia(inicio = "", fim = "") {
     const agora = new Date();
-    const params = { mes: agora.getMonth() + 1, ano: agora.getFullYear() };
+    const temIntervalo = Boolean(inicio || fim);
+    const params = {
+      mes: temIntervalo ? (inicio ? Number(inicio.slice(5, 7)) : mes) : agora.getMonth() + 1,
+      ano: temIntervalo ? (inicio ? Number(inicio.slice(0, 4)) : ano) : agora.getFullYear(),
+    };
     const [respostaRendas, respostaDespesas, respostaEstatisticas] = await Promise.all([
       api.get("/financas/tipo/RENDA", { params }),
       api.get("/financas/tipo/DESPESA", { params }),
       api.get("/financas/estatisticas/mensal", { params }),
     ]);
 
+    const dentroDoIntervalo = (item: any) => {
+      const data = normalizarData(item.dataInicio);
+
+      if (!data) return false;
+
+      const atendeInicio = !inicio || data >= inicio;
+      const atendeFim = !fim || data <= fim;
+
+      return atendeInicio && atendeFim;
+    };
+    const somarIntervalo = (itens: any[]) =>
+      itens
+        .filter(dentroDoIntervalo)
+        .reduce((total, item) => total + Number(item.valor || 0), 0);
     const somarHoje = (itens: any[]) =>
       itens
         .filter((item) => venceHoje(item, agora))
         .reduce((total, item) => total + Number(item.valor || 0), 0);
 
     const dataHoje = dataLocalISO(agora);
-    const dataItem = (item: any) => String(item.dataInicio || "").slice(0, 10);
-    const somarAteHoje = (itens: any[]) =>
+    const dataSaldoAcumulado = temIntervalo ? fim || inicio : dataHoje;
+    const dataItem = (item: any) => normalizarData(item.dataInicio);
+    const somarAteDataSaldo = (itens: any[]) =>
       itens
         .filter((item) => {
           const data = dataItem(item);
 
-          return data && data <= dataHoje;
+          return data && data <= dataSaldoAcumulado;
         })
         .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const somarAntesDeHoje = (itens: any[]) =>
+    const somarAntesDaDataSaldo = (itens: any[]) =>
       itens
         .filter((item) => {
           const data = dataItem(item);
 
-          return data && data < dataHoje;
+          return data && data < dataSaldoAcumulado;
         })
         .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const rendasAteHoje = somarAteHoje(respostaRendas.data);
-    const despesasAntesDeHoje = somarAntesDeHoje(respostaDespesas.data);
+    const rendasAteDataSaldo = somarAteDataSaldo(respostaRendas.data);
+    const despesasAntesDaDataSaldo = somarAntesDaDataSaldo(respostaDespesas.data);
     const saldoAnterior = Number(respostaEstatisticas.data?.saldoAnterior || 0);
 
     setResumoDia({
-      rendas: somarHoje(respostaRendas.data),
-      despesas: somarHoje(respostaDespesas.data),
-      saldoAcumulado: saldoAnterior + rendasAteHoje - despesasAntesDeHoje,
+      rendas: temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data),
+      despesas: temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data),
+      saldoAcumulado: saldoAnterior + rendasAteDataSaldo - despesasAntesDaDataSaldo,
     });
   }
 
   async function atualizarTela() {
     await Promise.all([buscarFinancas(), buscarResumoDia()]);
+  }
+
+  async function filtrar() {
+    await Promise.all([buscarFinancas(), buscarResumoDia(dataInicio, dataFim)]);
   }
 
   async function buscarCategorias() {
@@ -117,6 +161,12 @@ export default function FinancasPage() {
     buscarResumoDia();
   }, []);
 
+  useEffect(() => {
+    if (dataInicio || dataFim) {
+      buscarResumoDia(dataInicio, dataFim);
+    }
+  }, [dataInicio, dataFim, mes, ano, categoriaId]);
+
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -140,15 +190,31 @@ export default function FinancasPage() {
       return true;
     }
 
-    const data = financa.dataInicio;
+    const data = normalizarData(financa.dataInicio);
 
     const atendeInicio = !dataInicio || data >= dataInicio;
     const atendeFim = !dataFim || data <= dataFim;
 
     return atendeInicio && atendeFim;
   });
+  const temFiltroData = Boolean(dataInicio || dataFim);
+  const labelsResumo = temFiltroData
+    ? {
+        rendas: "Rendas do período",
+        gastos: "Gastos do período",
+        diferencaDia: "Diferença do período",
+        saldo: "Saldo acumulado no período",
+        diferencaTotal: "Diferença total do período",
+      }
+    : {
+        rendas: "Rendas do dia",
+        gastos: "Gastos do dia",
+        diferencaDia: "Diferença do dia",
+        saldo: "Saldo acumulado",
+        diferencaTotal: "Diferença total",
+      };
 
-  function limparFiltros() {
+  async function limparFiltros() {
     const hoje = new Date();
 
     setMes(hoje.getMonth() + 1);
@@ -156,6 +222,7 @@ export default function FinancasPage() {
     setCategoriaId("");
     setDataInicio("");
     setDataFim("");
+    await Promise.all([buscarFinancas(), buscarResumoDia()]);
   }
 
   async function gerarRelatorio() {
@@ -213,7 +280,7 @@ export default function FinancasPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Card className="border-emerald-200 bg-emerald-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">Rendas do dia</CardTitle>
+            <CardTitle className="text-sm font-medium text-emerald-800">{labelsResumo.rendas}</CardTitle>
             <ArrowUpCircle className="h-5 w-5 text-emerald-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold text-emerald-700">
@@ -222,7 +289,7 @@ export default function FinancasPage() {
         </Card>
         <Card className="border-red-200 bg-red-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800">Gastos do dia</CardTitle>
+            <CardTitle className="text-sm font-medium text-red-800">{labelsResumo.gastos}</CardTitle>
             <ArrowDownCircle className="h-5 w-5 text-red-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold text-red-700">
@@ -231,7 +298,7 @@ export default function FinancasPage() {
         </Card>
         <Card className="border-blue-200 bg-blue-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800">Diferença do dia</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-800">{labelsResumo.diferencaDia}</CardTitle>
             <Scale className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700" : "text-blue-700"}`}>
@@ -243,7 +310,7 @@ export default function FinancasPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Card className="border-teal-200 bg-teal-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-teal-800">Saldo acumulado</CardTitle>
+            <CardTitle className="text-sm font-medium text-teal-800">{labelsResumo.saldo}</CardTitle>
             <WalletCards className="h-5 w-5 text-teal-600" />
           </CardHeader>
           <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado < 0 ? "text-red-700" : "text-teal-700"}`}>
@@ -252,7 +319,7 @@ export default function FinancasPage() {
         </Card>
         <Card className="border-red-200 bg-red-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800">Gastos do dia</CardTitle>
+            <CardTitle className="text-sm font-medium text-red-800">{labelsResumo.gastos}</CardTitle>
             <ArrowDownCircle className="h-5 w-5 text-red-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold text-red-700">
@@ -261,7 +328,7 @@ export default function FinancasPage() {
         </Card>
         <Card className="border-slate-200 bg-slate-50/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-800">Diferença total</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-800">{labelsResumo.diferencaTotal}</CardTitle>
             <Scale className="h-5 w-5 text-slate-600" />
           </CardHeader>
           <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado - resumoDia.despesas < 0 ? "text-red-700" : "text-slate-700"}`}>
@@ -341,7 +408,7 @@ export default function FinancasPage() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={buscarFinancas}
+            onClick={filtrar}
           >
             <Filter size={16} /> Filtrar
           </Button>
