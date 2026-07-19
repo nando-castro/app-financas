@@ -3,8 +3,8 @@ import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { venceHoje } from "@/lib/financasDia";
-import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale } from "lucide-react";
+import { dataLocalISO, venceHoje } from "@/lib/financasDia";
+import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale, WalletCards } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { financasApi } from "../services/api";
 
@@ -13,7 +13,7 @@ type TipoFinanca = "RENDA" | "DESPESA";
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
-  const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0 });
+  const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0, saldoAcumulado: 0 });
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
   const [open, setOpen] = useState(false);
@@ -40,9 +40,10 @@ export default function FinancasPage() {
   async function buscarResumoDia() {
     const agora = new Date();
     const params = { mes: agora.getMonth() + 1, ano: agora.getFullYear() };
-    const [respostaRendas, respostaDespesas] = await Promise.all([
+    const [respostaRendas, respostaDespesas, respostaEstatisticas] = await Promise.all([
       api.get("/financas/tipo/RENDA", { params }),
       api.get("/financas/tipo/DESPESA", { params }),
+      api.get("/financas/estatisticas/mensal", { params }),
     ]);
 
     const somarHoje = (itens: any[]) =>
@@ -50,9 +51,32 @@ export default function FinancasPage() {
         .filter((item) => venceHoje(item, agora))
         .reduce((total, item) => total + Number(item.valor || 0), 0);
 
+    const dataHoje = dataLocalISO(agora);
+    const dataItem = (item: any) => String(item.dataInicio || "").slice(0, 10);
+    const somarAteHoje = (itens: any[]) =>
+      itens
+        .filter((item) => {
+          const data = dataItem(item);
+
+          return data && data <= dataHoje;
+        })
+        .reduce((total, item) => total + Number(item.valor || 0), 0);
+    const somarAntesDeHoje = (itens: any[]) =>
+      itens
+        .filter((item) => {
+          const data = dataItem(item);
+
+          return data && data < dataHoje;
+        })
+        .reduce((total, item) => total + Number(item.valor || 0), 0);
+    const rendasAteHoje = somarAteHoje(respostaRendas.data);
+    const despesasAntesDeHoje = somarAntesDeHoje(respostaDespesas.data);
+    const saldoAnterior = Number(respostaEstatisticas.data?.saldoAnterior || 0);
+
     setResumoDia({
       rendas: somarHoje(respostaRendas.data),
       despesas: somarHoje(respostaDespesas.data),
+      saldoAcumulado: saldoAnterior + rendasAteHoje - despesasAntesDeHoje,
     });
   }
 
@@ -212,6 +236,36 @@ export default function FinancasPage() {
           </CardHeader>
           <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700" : "text-blue-700"}`}>
             {formatarMoeda(resumoDia.rendas - resumoDia.despesas)}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="border-teal-200 bg-teal-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-teal-800">Saldo acumulado</CardTitle>
+            <WalletCards className="h-5 w-5 text-teal-600" />
+          </CardHeader>
+          <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado < 0 ? "text-red-700" : "text-teal-700"}`}>
+            {formatarMoeda(resumoDia.saldoAcumulado)}
+          </CardContent>
+        </Card>
+        <Card className="border-red-200 bg-red-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-800">Gastos do dia</CardTitle>
+            <ArrowDownCircle className="h-5 w-5 text-red-600" />
+          </CardHeader>
+          <CardContent className="text-2xl font-bold text-red-700">
+            {formatarMoeda(resumoDia.despesas)}
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200 bg-slate-50/70">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-slate-800">Diferença total</CardTitle>
+            <Scale className="h-5 w-5 text-slate-600" />
+          </CardHeader>
+          <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado - resumoDia.despesas < 0 ? "text-red-700" : "text-slate-700"}`}>
+            {formatarMoeda(resumoDia.saldoAcumulado - resumoDia.despesas)}
           </CardContent>
         </Card>
       </div>
