@@ -4,19 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dataLocalISO, venceHoje } from "@/lib/financasDia";
-import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale, WalletCards } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { financasApi } from "../services/api";
 
 type TipoFinanca = "RENDA" | "DESPESA";
-
-type ChecklistItem = {
-  financaId: number;
-  tipo: TipoFinanca;
-  valor: number;
-  dataLancamento: string;
-  checked: boolean;
-};
 
 function normalizarData(valor?: string | Date | null) {
   if (!valor) return "";
@@ -61,7 +53,7 @@ function dataLancamentoNoMes(financa: any, mes: number, ano: number) {
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
-  const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0, saldoAcumulado: 0 });
+  const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0 });
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
   const [open, setOpen] = useState(false);
@@ -92,11 +84,9 @@ export default function FinancasPage() {
       mes: temIntervalo ? (inicio ? Number(inicio.slice(5, 7)) : mes) : agora.getMonth() + 1,
       ano: temIntervalo ? (inicio ? Number(inicio.slice(0, 4)) : ano) : agora.getFullYear(),
     };
-    const [respostaRendas, respostaDespesas, respostaEstatisticas, respostaChecklist] = await Promise.all([
+    const [respostaRendas, respostaDespesas] = await Promise.all([
       api.get("/financas/tipo/RENDA", { params }),
       api.get("/financas/tipo/DESPESA", { params }),
-      api.get("/financas/estatisticas/mensal", { params }),
-      api.get("/financas/checklist/mensal", { params }),
     ]);
 
     const dentroDoIntervalo = (item: any) => {
@@ -118,34 +108,12 @@ export default function FinancasPage() {
         .filter((item) => venceHoje(item, agora))
         .reduce((total, item) => total + Number(item.valor || 0), 0);
 
-    const itensChecklist: ChecklistItem[] = respostaChecklist.data?.itens ?? [];
-    const saldoMarcado = itensChecklist
-      .filter((item) => item.checked)
-      .reduce((total, item) => {
-        const valor = Number(item.valor || 0);
-
-        return item.tipo === "RENDA" ? total + valor : total - valor;
-      }, 0);
-    const saldoAnterior = Number(respostaEstatisticas.data?.saldoAnterior || 0);
     const rendasResumo = temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data);
     const despesasResumo = temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data);
-    const saldoAtual = saldoAnterior + saldoMarcado;
-    const dataHoje = dataLocalISO(agora);
-    const rendasFuturasNoPeriodo = temIntervalo
-      ? respostaRendas.data
-          .filter((item: any) => {
-            const data = dataLancamentoNoMes(item, params.mes, params.ano);
-
-            return data && data > dataHoje && dentroDoIntervalo(item);
-          })
-          .reduce((total: number, item: any) => total + Number(item.valor || 0), 0)
-      : 0;
-    const saldoAcumulado = temIntervalo ? saldoAtual + rendasFuturasNoPeriodo : saldoAtual;
 
     setResumoDia({
       rendas: rendasResumo,
       despesas: despesasResumo,
-      saldoAcumulado,
     });
   }
 
@@ -232,15 +200,11 @@ export default function FinancasPage() {
         rendas: "Rendas do período",
         gastos: "Gastos do período",
         diferencaDia: "Diferença do período",
-        saldo: "Saldo acumulado no período",
-        diferencaTotal: "Diferença total do período",
       }
     : {
         rendas: "Rendas do dia",
         gastos: "Gastos do dia",
         diferencaDia: "Diferença do dia",
-        saldo: "Saldo acumulado",
-        diferencaTotal: "Diferença total",
       };
 
   async function limparFiltros() {
@@ -332,36 +296,6 @@ export default function FinancasPage() {
           </CardHeader>
           <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700" : "text-blue-700"}`}>
             {formatarMoeda(resumoDia.rendas - resumoDia.despesas)}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="border-teal-200 bg-teal-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-teal-800">{labelsResumo.saldo}</CardTitle>
-            <WalletCards className="h-5 w-5 text-teal-600" />
-          </CardHeader>
-          <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado < 0 ? "text-red-700" : "text-teal-700"}`}>
-            {formatarMoeda(resumoDia.saldoAcumulado)}
-          </CardContent>
-        </Card>
-        <Card className="border-red-200 bg-red-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800">{labelsResumo.gastos}</CardTitle>
-            <ArrowDownCircle className="h-5 w-5 text-red-600" />
-          </CardHeader>
-          <CardContent className="text-2xl font-bold text-red-700">
-            {formatarMoeda(resumoDia.despesas)}
-          </CardContent>
-        </Card>
-        <Card className="border-slate-200 bg-slate-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-800">{labelsResumo.diferencaTotal}</CardTitle>
-            <Scale className="h-5 w-5 text-slate-600" />
-          </CardHeader>
-          <CardContent className={`text-2xl font-bold ${resumoDia.saldoAcumulado - resumoDia.despesas < 0 ? "text-red-700" : "text-slate-700"}`}>
-            {formatarMoeda(resumoDia.saldoAcumulado - resumoDia.despesas)}
           </CardContent>
         </Card>
       </div>
