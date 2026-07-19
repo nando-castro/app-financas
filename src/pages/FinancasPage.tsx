@@ -10,6 +10,14 @@ import api, { financasApi } from "../services/api";
 
 type TipoFinanca = "RENDA" | "DESPESA";
 
+type ChecklistItem = {
+  financaId: number;
+  tipo: TipoFinanca;
+  valor: number;
+  dataLancamento: string;
+  checked: boolean;
+};
+
 function normalizarData(valor?: string | Date | null) {
   if (!valor) return "";
   if (valor instanceof Date) return dataLocalISO(valor);
@@ -65,10 +73,11 @@ export default function FinancasPage() {
       mes: temIntervalo ? (inicio ? Number(inicio.slice(5, 7)) : mes) : agora.getMonth() + 1,
       ano: temIntervalo ? (inicio ? Number(inicio.slice(0, 4)) : ano) : agora.getFullYear(),
     };
-    const [respostaRendas, respostaDespesas, respostaEstatisticas] = await Promise.all([
+    const [respostaRendas, respostaDespesas, respostaEstatisticas, respostaChecklist] = await Promise.all([
       api.get("/financas/tipo/RENDA", { params }),
       api.get("/financas/tipo/DESPESA", { params }),
       api.get("/financas/estatisticas/mensal", { params }),
+      api.get("/financas/checklist/mensal", { params }),
     ]);
 
     const dentroDoIntervalo = (item: any) => {
@@ -92,31 +101,42 @@ export default function FinancasPage() {
 
     const dataHoje = dataLocalISO(agora);
     const dataSaldoAcumulado = temIntervalo ? fim || inicio : dataHoje;
-    const dataItem = (item: any) => normalizarData(item.dataInicio);
-    const somarAteDataSaldo = (itens: any[]) =>
-      itens
-        .filter((item) => {
-          const data = dataItem(item);
+    const itensChecklist: ChecklistItem[] = respostaChecklist.data?.itens ?? [];
+    const saldoMarcado = itensChecklist
+      .filter((item) => item.checked)
+      .reduce((total, item) => {
+        const valor = Number(item.valor || 0);
 
-          return data && data <= dataSaldoAcumulado;
-        })
-        .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const somarAntesDaDataSaldo = (itens: any[]) =>
-      itens
-        .filter((item) => {
-          const data = dataItem(item);
+        return item.tipo === "RENDA" ? total + valor : total - valor;
+      }, 0);
+    const rendasMarcadasAteDataSaldo = itensChecklist
+      .filter((item) => item.checked && item.tipo === "RENDA" && normalizarData(item.dataLancamento) <= dataSaldoAcumulado)
+      .reduce((total, item) => total + Number(item.valor || 0), 0);
+    const despesasMarcadasAntesDaDataSaldo = itensChecklist
+      .filter((item) => item.checked && item.tipo === "DESPESA" && normalizarData(item.dataLancamento) < dataSaldoAcumulado)
+      .reduce((total, item) => total + Number(item.valor || 0), 0);
+    const rendaProjetadaNaoMarcada = temIntervalo
+      ? Math.max(0, somarIntervalo(respostaRendas.data) - rendasMarcadasAteDataSaldo)
+      : 0;
+    const despesaProjetadaNaoMarcadaAntesDaData = temIntervalo
+      ? Math.max(
+          0,
+          respostaDespesas.data
+            .filter((item: any) => {
+              const data = normalizarData(item.dataInicio);
 
-          return data && data < dataSaldoAcumulado;
-        })
-        .reduce((total, item) => total + Number(item.valor || 0), 0);
-    const rendasAteDataSaldo = somarAteDataSaldo(respostaRendas.data);
-    const despesasAntesDaDataSaldo = somarAntesDaDataSaldo(respostaDespesas.data);
+              return data && data < dataSaldoAcumulado;
+            })
+            .reduce((total: number, item: any) => total + Number(item.valor || 0), 0) - despesasMarcadasAntesDaDataSaldo,
+        )
+      : 0;
     const saldoAnterior = Number(respostaEstatisticas.data?.saldoAnterior || 0);
+    const saldoAcumulado = saldoAnterior + saldoMarcado + rendaProjetadaNaoMarcada - despesaProjetadaNaoMarcadaAntesDaData;
 
     setResumoDia({
       rendas: temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data),
       despesas: temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data),
-      saldoAcumulado: saldoAnterior + rendasAteDataSaldo - despesasAntesDaDataSaldo,
+      saldoAcumulado,
     });
   }
 
