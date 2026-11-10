@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import api from "@/services/api";
+import { isCreditoCartao, normalizarTextoBusca } from "@/lib/creditosCartao";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
@@ -126,7 +127,9 @@ export function FinancaDialog({
             (initialData.formaPagamento as FormaPagamento) || "PIX",
           cartaoId: initialData.cartaoId ? String(initialData.cartaoId) : "",
 
-          tipoLancamento: initialData.tipoLancamento || "VARIAVEL",
+          tipoLancamento: isCreditoCartao(initialData)
+            ? "CARTAO"
+            : initialData.tipoLancamento || "VARIAVEL",
         });
 
         setUnica(!!di && di === df && !initialData.parcelas);
@@ -217,6 +220,40 @@ export function FinancaDialog({
     }
   }
 
+  async function salvarFinanca(payload: any, id?: number) {
+    const enviar = (dados: any) =>
+      id
+        ? api.put(`/financas/${id}`, dados)
+        : api.post("/financas", dados);
+
+    try {
+      return await enviar(payload);
+    } catch (error: any) {
+      const mensagens = error.response?.data?.message;
+      const mensagem = normalizarTextoBusca(
+        Array.isArray(mensagens) ? mensagens.join(" ") : String(mensagens || ""),
+      );
+      const categoria = categorias.find(
+        (item) => String(item.id) === String(payload.categoriaId),
+      ) ?? initialData?.categoria;
+      const apiNaoAceitaTipoCartao =
+        error.response?.status === 400 &&
+        mensagem.includes("fixo ou variavel");
+
+      if (
+        !apiNaoAceitaTipoCartao ||
+        payload.tipoLancamento !== "CARTAO" ||
+        normalizarTextoBusca(categoria?.nome || "") !== "cartao"
+      ) {
+        throw error;
+      }
+
+      // Compatibilidade com a API hospedada que ainda aceita apenas FIXO/VARIAVEL.
+      // A categoria Cartão mantém o lançamento separado como crédito.
+      return enviar({ ...payload, tipoLancamento: "VARIAVEL" });
+    }
+  }
+
   // mode:
   // "single" -> salva normal
   // "next"   -> salva atual + próxima (apenas criação)
@@ -236,6 +273,20 @@ export function FinancaDialog({
       }
       if (!form.categoriaId) {
         alert("Selecione uma categoria.");
+        return;
+      }
+      if (
+        tipo === "RENDA" &&
+        form.tipoLancamento === "CARTAO" &&
+        normalizarTextoBusca(
+          (
+            categorias.find(
+              (item) => String(item.id) === String(form.categoriaId),
+            ) ?? initialData?.categoria
+          )?.nome || "",
+        ) !== "cartao"
+      ) {
+        alert('Para um crédito de cartão, selecione a categoria "Cartão".');
         return;
       }
       if (!form.dataInicio) {
@@ -315,9 +366,9 @@ export function FinancaDialog({
           };
 
           if (isFirst && isEditing && initialData?.id) {
-            await api.put(`/financas/${initialData.id}`, payloadItem);
+            await salvarFinanca(payloadItem, initialData.id);
           } else {
-            await api.post("/financas", payloadItem);
+            await salvarFinanca(payloadItem);
           }
 
           isFirst = false;
@@ -326,9 +377,9 @@ export function FinancaDialog({
       } else {
         // SINGLE / NEXT
         if (isEditing && initialData?.id) {
-          await api.put(`/financas/${initialData.id}`, basePayload);
+          await salvarFinanca(basePayload, initialData.id);
         } else {
-          await api.post("/financas", basePayload);
+          await salvarFinanca(basePayload);
 
           // Criar também para o próximo mês (apenas criação)
           if (mode === "next" && dataInicioBase) {
@@ -346,7 +397,7 @@ export function FinancaDialog({
               dataFim: nextDataFim,
             };
 
-            await api.post("/financas", payloadNext);
+            await salvarFinanca(payloadNext);
           }
         }
       }
@@ -447,6 +498,9 @@ export function FinancaDialog({
                 <SelectItem value="FIXO">Fixo</SelectItem>
 
                 <SelectItem value="VARIAVEL">Variável</SelectItem>
+                {tipo === "RENDA" && (
+                  <SelectItem value="CARTAO">Cartão</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

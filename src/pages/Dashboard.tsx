@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTheme } from "@/hooks/useTheme";
+import { isCreditoCartao } from "@/lib/creditosCartao";
 import api from "@/services/api";
 import dayjs from "dayjs";
 import {
@@ -57,10 +58,41 @@ export default function Dashboard() {
 
   // 🔹 Carregar resumo financeiro
   async function carregarResumo(m: number, a: number) {
-    const { data } = await api.get(
-      `/financas/estatisticas/mensal?mes=${m}&ano=${a}`,
+    const [{ data: estatisticas }, { data: rendas }] = await Promise.all([
+      api.get(`/financas/estatisticas/mensal?mes=${m}&ano=${a}`),
+      api.get(`/financas/tipo/RENDA?mes=${m}&ano=${a}`),
+    ]);
+    const rendasRegulares = rendas.filter((item: any) => !isCreditoCartao(item));
+    const totalRendas = rendasRegulares.reduce(
+      (total: number, item: any) => total + Number(item.valor || 0),
+      0,
     );
-    setResumo(data);
+    const saldo = totalRendas - Number(estatisticas.totalDespesas || 0);
+    const percentualEconomia = totalRendas > 0
+      ? `${((saldo / totalRendas) * 100).toFixed(2)}%`
+      : "0%";
+    const somaTipo = (tipoLancamento: string) =>
+      rendasRegulares
+        .filter((item: any) => item.tipoLancamento === tipoLancamento)
+        .reduce((total: number, item: any) => total + Number(item.valor || 0), 0);
+
+    setResumo({
+      ...estatisticas,
+      totalRendas,
+      saldo,
+      percentualEconomia,
+      recomendacao:
+        saldo > 0
+          ? "Parabéns! Você está com saldo positivo. Considere investir parte do excedente."
+          : saldo < 0
+            ? "Atenção! Você gastou mais do que ganhou neste mês."
+            : "Você manteve um bom equilíbrio financeiro.",
+      tipoLancamento: {
+        ...estatisticas.tipoLancamento,
+        rendasFixas: somaTipo("FIXO"),
+        rendasVariaveis: somaTipo("VARIAVEL"),
+      },
+    });
   }
 
   // 🔹 Carregar categorias (RENDA / DESPESA)
@@ -68,7 +100,9 @@ export default function Dashboard() {
     const { data } = await api.get(
       `/financas/estatisticas/categorias?mes=${m}&ano=${a}`,
     );
-    const rendas = data.filter((item: any) => item.tipo === "RENDA");
+    const rendas = data.filter(
+      (item: any) => item.tipo === "RENDA" && !isCreditoCartao(item),
+    );
     const despesas = data.filter((item: any) => item.tipo === "DESPESA");
     setCategoriasRenda(rendas);
     setCategoriasDespesa(despesas);
@@ -79,6 +113,8 @@ export default function Dashboard() {
       `/financas/estatisticas/categorias-tipo-lancamento?mes=${m}&ano=${a}`,
     );
 
+    // O endpoint já remove créditos de renda. Não filtrar pelo nome da categoria
+    // aqui, pois a categoria Cartão também pode conter despesas legítimas.
     setCategoriasTipoLancamento(data);
   }
 

@@ -2,9 +2,20 @@ import { FinancaDialog } from "@/components/financas/FinancaDialog";
 import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dataLocalISO, venceHoje } from "@/lib/financasDia";
-import { ArrowDownCircle, ArrowUpCircle, Download, Filter, PlusCircle, Scale } from "lucide-react";
+import { isCreditoCartao, normalizarTextoBusca } from "@/lib/creditosCartao";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  CreditCard,
+  Download,
+  Filter,
+  PlusCircle,
+  Scale,
+  Search,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { financasApi } from "../services/api";
 
@@ -53,6 +64,7 @@ function dataLancamentoNoMes(financa: any, mes: number, ano: number) {
 export default function FinancasPage() {
   const [tipo, setTipo] = useState<TipoFinanca>("RENDA");
   const [financas, setFinancas] = useState<any[]>([]);
+  const [rendasCartao, setRendasCartao] = useState<any[]>([]);
   const [resumoDia, setResumoDia] = useState({ rendas: 0, despesas: 0 });
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
@@ -64,6 +76,7 @@ export default function FinancasPage() {
 
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [buscaNome, setBuscaNome] = useState("");
 
   async function buscarFinancas() {
     const { data } = await api.get(`/financas/tipo/${tipo}`, {
@@ -75,6 +88,18 @@ export default function FinancasPage() {
     });
 
     setFinancas(data);
+  }
+
+  async function buscarRendasCartao() {
+    try {
+      const { data } = await api.get("/financas/tipo/RENDA", {
+        params: { mes, ano },
+      });
+      setRendasCartao(data.filter(isCreditoCartao));
+    } catch (error) {
+      console.error("Erro ao buscar créditos de cartão:", error);
+      setRendasCartao([]);
+    }
   }
 
   async function buscarResumoDia(inicio = "", fim = "") {
@@ -108,7 +133,12 @@ export default function FinancasPage() {
         .filter((item) => venceHoje(item, agora))
         .reduce((total, item) => total + Number(item.valor || 0), 0);
 
-    const rendasResumo = temIntervalo ? somarIntervalo(respostaRendas.data) : somarHoje(respostaRendas.data);
+    const rendasSemCreditoCartao = respostaRendas.data.filter(
+      (item: any) => !isCreditoCartao(item),
+    );
+    const rendasResumo = temIntervalo
+      ? somarIntervalo(rendasSemCreditoCartao)
+      : somarHoje(rendasSemCreditoCartao);
     const despesasResumo = temIntervalo ? somarIntervalo(respostaDespesas.data) : somarHoje(respostaDespesas.data);
 
     setResumoDia({
@@ -118,7 +148,7 @@ export default function FinancasPage() {
   }
 
   async function atualizarTela() {
-    await Promise.all([buscarFinancas(), buscarResumoDia()]);
+    await Promise.all([buscarFinancas(), buscarResumoDia(), buscarRendasCartao()]);
   }
 
   async function filtrar() {
@@ -155,6 +185,10 @@ export default function FinancasPage() {
   }, [tipo, mes, ano, categoriaId]);
 
   useEffect(() => {
+    buscarRendasCartao();
+  }, [mes, ano]);
+
+  useEffect(() => {
     buscarResumoDia();
   }, []);
 
@@ -183,6 +217,12 @@ export default function FinancasPage() {
   ];
 
   const financasFiltradas = financas.filter((financa) => {
+    if (tipo === "RENDA" && isCreditoCartao(financa)) return false;
+    const nomeCombina = normalizarTextoBusca(financa.nome || "").includes(
+      normalizarTextoBusca(buscaNome),
+    );
+    if (!nomeCombina) return false;
+
     if (!dataInicio && !dataFim) {
       return true;
     }
@@ -194,6 +234,25 @@ export default function FinancasPage() {
 
     return atendeInicio && atendeFim;
   });
+  const rendasCartaoFiltradas = rendasCartao.filter((financa) => {
+    if (!dataInicio && !dataFim) return true;
+    const data = dataLancamentoNoMes(financa, mes, ano);
+    return (!dataInicio || data >= dataInicio) && (!dataFim || data <= dataFim);
+  });
+  const creditosPorCartao = Object.values(
+    rendasCartaoFiltradas.reduce((acumulado: Record<string, any>, renda: any) => {
+      const chave = normalizarTextoBusca(renda.nome || "Sem nome") || "sem nome";
+      if (!acumulado[chave]) {
+        acumulado[chave] = { nome: renda.nome || "Sem nome", valor: 0 };
+      }
+      acumulado[chave].valor += Number(renda.valor || 0);
+      return acumulado;
+    }, {}),
+  ) as Array<{ nome: string; valor: number }>;
+  const totalCreditosCartao = creditosPorCartao.reduce(
+    (total, cartao) => total + cartao.valor,
+    0,
+  );
   const temFiltroData = Boolean(dataInicio || dataFim);
   const labelsResumo = temFiltroData
     ? {
@@ -215,6 +274,7 @@ export default function FinancasPage() {
     setCategoriaId("");
     setDataInicio("");
     setDataFim("");
+    setBuscaNome("");
     await Promise.all([buscarFinancas(), buscarResumoDia()]);
   }
 
@@ -300,8 +360,62 @@ export default function FinancasPage() {
         </Card>
       </div>
 
+      <Card className="border-violet-200 bg-violet-50/50 dark:border-violet-900 dark:bg-violet-950/20">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <div>
+            <CardTitle className="text-base font-semibold text-violet-900 dark:text-violet-200">
+              Créditos de cartão
+            </CardTitle>
+            <p className="mt-1 text-sm text-violet-700 dark:text-violet-300">
+              Créditos da categoria Cartão no período selecionado
+            </p>
+          </div>
+          <CreditCard className="h-5 w-5 text-violet-600" />
+        </CardHeader>
+        <CardContent>
+          {creditosPorCartao.length ? (
+            <div className="space-y-2">
+              {creditosPorCartao.map((cartao) => (
+                <div
+                  key={normalizarTextoBusca(cartao.nome)}
+                  className="flex items-center justify-between rounded-md bg-white/80 px-3 py-2 text-sm dark:bg-slate-900/60"
+                >
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                    {cartao.nome}
+                  </span>
+                  <span className="font-semibold text-violet-800 dark:text-violet-200">
+                    {formatarMoeda(cartao.valor)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Nenhum crédito de cartão neste período.
+            </p>
+          )}
+          <div className="mt-3 flex items-center justify-between border-t border-violet-200 pt-3 font-semibold dark:border-violet-900">
+            <span>Total de créditos disponíveis</span>
+            <span className="text-violet-800 dark:text-violet-200">
+              {formatarMoeda(totalCreditosCartao)}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Filtros */}
       <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative min-w-[220px] flex-1 sm:flex-none">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            type="search"
+            value={buscaNome}
+            onChange={(e) => setBuscaNome(e.target.value)}
+            placeholder="Buscar por nome"
+            aria-label="Filtrar rendas ou despesas pelo nome"
+            className="pl-9"
+          />
+        </div>
         <select
           value={mes}
           onChange={(e) => setMes(Number(e.target.value))}

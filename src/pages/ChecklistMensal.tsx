@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import api from "@/services/api";
+import { isCreditoCartao } from "@/lib/creditosCartao";
 import dayjs from "dayjs";
 import { Calendar, CheckCircle2, Circle, RefreshCcw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +11,8 @@ type ChecklistItem = {
   tipo: "RENDA" | "DESPESA";
   valor: number;
   categoriaId?: number | null;
+  categoriaNome?: string | null;
+  tipoLancamento?: string;
   dataLancamento: string; // YYYY-MM-DD
   competencia: string; // YYYY-MM
   parcelas?: number | null;
@@ -55,13 +58,29 @@ export default function ChecklistMensal() {
   async function carregar(m: number, a: number) {
     setLoading(true);
     try {
-      const [checkRes, estatRes] = await Promise.all([
+      const [checkRes, estatRes, rendasRes, categoriasRes] = await Promise.all([
         api.get(`/financas/checklist/mensal?mes=${m}&ano=${a}`),
         api.get(`/financas/estatisticas/mensal?mes=${m}&ano=${a}`),
+        api.get(`/financas/tipo/RENDA?mes=${m}&ano=${a}`),
+        api.get("/categorias"),
       ]);
 
-      setData(checkRes.data);
-      setEstat(estatRes.data);
+      const categoriasPorId = new Map(
+        categoriasRes.data.map((categoria: any) => [categoria.id, categoria.nome]),
+      );
+      const itensVisiveis = checkRes.data.itens
+        .map((item: ChecklistItem) => ({
+          ...item,
+          categoriaNome:
+            item.categoriaNome ?? categoriasPorId.get(item.categoriaId) ?? null,
+        }))
+        .filter((item: ChecklistItem) => !isCreditoCartao(item));
+      const totalRendasVisiveis = rendasRes.data
+        .filter((item: any) => !isCreditoCartao(item))
+        .reduce((total: number, item: any) => total + Number(item.valor || 0), 0);
+
+      setData({ ...checkRes.data, itens: itensVisiveis });
+      setEstat({ ...estatRes.data, totalRendas: totalRendasVisiveis });
       setEdits({});
     } finally {
       setLoading(false);
