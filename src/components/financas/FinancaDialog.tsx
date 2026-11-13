@@ -114,6 +114,11 @@ export function FinancaDialog({
         const di = initialData.dataInicio?.split("T")[0] || "";
         const df = initialData.dataFim?.split("T")[0] || "";
 
+        setCategoriaBusca(
+          initialData.categoria?.nome ?? initialData.categoriaNome ?? "",
+        );
+        setMostrarCategorias(false);
+
         setForm({
           nome: initialData.nome || "",
           valor: String(initialData.valor) || "",
@@ -147,10 +152,10 @@ export function FinancaDialog({
           tipoLancamento: "VARIAVEL",
         });
 
-        setUnica(true);
-        setRepetirAteDataFim(false);
         setCategoriaBusca("");
         setMostrarCategorias(false);
+        setUnica(true);
+        setRepetirAteDataFim(false);
       }
     }
   }, [open, tipo]);

@@ -2,6 +2,13 @@ import { FinancaDialog } from "@/components/financas/FinancaDialog";
 import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dataLocalISO, venceHoje } from "@/lib/financasDia";
@@ -13,8 +20,10 @@ import {
   Download,
   Filter,
   PlusCircle,
+  Pencil,
   Scale,
   Search,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import api, { financasApi } from "../services/api";
@@ -69,6 +78,8 @@ export default function FinancasPage() {
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
   const [open, setOpen] = useState(false);
+  const [creditoSelecionado, setCreditoSelecionado] = useState<any>(null);
+  const [creditoParaExcluir, setCreditoParaExcluir] = useState<any>(null);
 
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.getMonth() + 1);
@@ -239,18 +250,8 @@ export default function FinancasPage() {
     const data = dataLancamentoNoMes(financa, mes, ano);
     return (!dataInicio || data >= dataInicio) && (!dataFim || data <= dataFim);
   });
-  const creditosPorCartao = Object.values(
-    rendasCartaoFiltradas.reduce((acumulado: Record<string, any>, renda: any) => {
-      const chave = normalizarTextoBusca(renda.nome || "Sem nome") || "sem nome";
-      if (!acumulado[chave]) {
-        acumulado[chave] = { nome: renda.nome || "Sem nome", valor: 0 };
-      }
-      acumulado[chave].valor += Number(renda.valor || 0);
-      return acumulado;
-    }, {}),
-  ) as Array<{ nome: string; valor: number }>;
-  const totalCreditosCartao = creditosPorCartao.reduce(
-    (total, cartao) => total + cartao.valor,
+  const totalCreditosCartao = rendasCartaoFiltradas.reduce(
+    (total, renda) => total + Number(renda.valor || 0),
     0,
   );
   const temFiltroData = Boolean(dataInicio || dataFim);
@@ -276,6 +277,19 @@ export default function FinancasPage() {
     setDataFim("");
     setBuscaNome("");
     await Promise.all([buscarFinancas(), buscarResumoDia()]);
+  }
+
+  async function excluirCreditoCartao() {
+    if (!creditoParaExcluir) return;
+
+    try {
+      await api.delete(`/financas/${creditoParaExcluir.id}`);
+      setCreditoParaExcluir(null);
+      await atualizarTela();
+    } catch (error) {
+      console.error("Erro ao excluir crédito de cartão:", error);
+      alert("Erro ao excluir crédito de cartão.");
+    }
   }
 
   async function gerarRelatorio() {
@@ -321,7 +335,10 @@ export default function FinancasPage() {
           </Button>
 
           <Button
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setCreditoSelecionado(null);
+              setOpen(true);
+            }}
             className="flex items-center gap-2"
           >
             <PlusCircle size={18} />
@@ -373,19 +390,43 @@ export default function FinancasPage() {
           <CreditCard className="h-5 w-5 text-violet-600" />
         </CardHeader>
         <CardContent>
-          {creditosPorCartao.length ? (
+          {rendasCartaoFiltradas.length ? (
             <div className="space-y-2">
-              {creditosPorCartao.map((cartao) => (
+              {rendasCartaoFiltradas.map((credito) => (
                 <div
-                  key={normalizarTextoBusca(cartao.nome)}
-                  className="flex items-center justify-between rounded-md bg-white/80 px-3 py-2 text-sm dark:bg-slate-900/60"
+                  key={credito.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white/80 px-3 py-2 text-sm dark:bg-slate-900/60"
                 >
-                  <span className="font-medium text-slate-700 dark:text-slate-200">
-                    {cartao.nome}
+                  <span className="min-w-0 flex-1 font-medium text-slate-700 dark:text-slate-200">
+                    {credito.nome || "Sem nome"}
                   </span>
                   <span className="font-semibold text-violet-800 dark:text-violet-200">
-                    {formatarMoeda(cartao.valor)}
+                    {formatarMoeda(Number(credito.valor || 0))}
                   </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Editar crédito ${credito.nome}`}
+                      title="Editar crédito"
+                      onClick={() => {
+                        setTipo("RENDA");
+                        setCreditoSelecionado(credito);
+                        setOpen(true);
+                      }}
+                    >
+                      <Pencil size={16} />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label={`Remover crédito ${credito.nome}`}
+                      title="Remover crédito"
+                      onClick={() => setCreditoParaExcluir(credito)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -529,8 +570,36 @@ export default function FinancasPage() {
         open={open}
         setOpen={setOpen}
         tipo={tipo}
-        onSave={atualizarTela}
+        initialData={creditoSelecionado}
+        onSave={() => {
+          setCreditoSelecionado(null);
+          atualizarTela();
+        }}
       />
+
+      {creditoParaExcluir && (
+        <Dialog
+          open={!!creditoParaExcluir}
+          onOpenChange={() => setCreditoParaExcluir(null)}
+        >
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Remover crédito de cartão</DialogTitle>
+            </DialogHeader>
+            <p className="text-slate-600">
+              Tem certeza que deseja remover <strong>{creditoParaExcluir.nome}</strong>?
+            </p>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setCreditoParaExcluir(null)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={excluirCreditoCartao}>
+                Remover
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
