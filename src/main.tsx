@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import PwaPrompt from "./components/PwaPrompt";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner"; // ✅ Import correto do Sonner
 import Layout from "./components/layout/Layout";
@@ -24,6 +25,7 @@ import EarningsPlanningPage from "./pages/EarningsPlanningPage";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <PwaPrompt />
       <Routes>
         {/* Público */}
         <Route path="/" element={<LoginPage />} />
