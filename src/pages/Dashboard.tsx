@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { YearSelector } from "@/components/YearSelector";
 import { MonthSelector } from "@/components/MonthSelector";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import { isCreditoCartao } from "@/lib/creditosCartao";
 import api from "@/services/api";
@@ -27,6 +29,9 @@ import {
 } from "recharts";
 
 export default function Dashboard() {
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [tentativa, setTentativa] = useState(0);
   const [resumo, setResumo] = useState<any>(null);
   const [categoriasRenda, setCategoriasRenda] = useState<any[]>([]);
   const [categoriasDespesa, setCategoriasDespesa] = useState<any[]>([]);
@@ -122,10 +127,20 @@ export default function Dashboard() {
 
   // 🔹 Atualizar tudo ao alterar mês/ano
   useEffect(() => {
-    carregarResumo(mes, ano);
-    carregarCategorias(mes, ano);
-    carregarCategoriasTipoLancamento(mes, ano);
-  }, [mes, ano]);
+    let ativo = true;
+    setCarregando(true);
+    setErro(false);
+    Promise.allSettled([
+      carregarResumo(mes, ano),
+      carregarCategorias(mes, ano),
+      carregarCategoriasTipoLancamento(mes, ano),
+    ]).then((resultados) => {
+      if (!ativo) return;
+      setErro(resultados.some((resultado) => resultado.status === "rejected"));
+      setCarregando(false);
+    });
+    return () => { ativo = false; };
+  }, [mes, ano, tentativa]);
 
   // 🔹 Alterar mês e ano manualmente
   function mudarMes(novoMes: number, novoAno: number) {
@@ -140,7 +155,13 @@ export default function Dashboard() {
     setAno(novoAno);
   }
 
-  if (!resumo) return <p className="text-center mt-10">Carregando...</p>;
+  if (carregando && !resumo) return <LoadingOverlay />;
+  if (erro || !resumo) return (
+    <div role="alert" className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
+      <p>Não foi possível carregar o painel financeiro.</p>
+      <Button onClick={() => setTentativa((valor) => valor + 1)}>Tentar novamente</Button>
+    </div>
+  );
 
   const formatarMoeda = (valor: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -247,6 +268,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {carregando && <LoadingOverlay />}
       {/* Filtros de mês/ano */}
       <div className="flex flex-wrap justify-end items-center gap-3">
         <div className="flex flex-wrap items-center gap-2">

@@ -1,3 +1,4 @@
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSelector } from "@/components/MonthSelector";
@@ -21,6 +22,9 @@ import {
 } from "recharts";
 
 export default function EstatisticasPage() {
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [tentativa, setTentativa] = useState(0);
   const [dadosMensal, setDadosMensal] = useState<any>(null);
   const [dadosAnual, setDadosAnual] = useState<any[]>([]);
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
@@ -40,14 +44,28 @@ export default function EstatisticasPage() {
   }
 
   useEffect(() => {
-    carregarMensal();
-    carregarAnual();
-  }, [mes, ano]);
+    let ativo = true;
+    setCarregando(true);
+    setErro(false);
+    Promise.allSettled([carregarMensal(), carregarAnual()]).then((resultados) => {
+      if (!ativo) return;
+      setErro(resultados.some((resultado) => resultado.status === "rejected"));
+      setCarregando(false);
+    });
+    return () => { ativo = false; };
+  }, [mes, ano, tentativa]);
 
-  if (!dadosMensal) return <p className="text-center mt-10">Carregando...</p>;
+  if (carregando && !dadosMensal) return <LoadingOverlay />;
+  if (erro || !dadosMensal) return (
+    <div role="alert" className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
+      <p>Não foi possível carregar as estatísticas.</p>
+      <Button onClick={() => setTentativa((valor) => valor + 1)}>Tentar novamente</Button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
+      {carregando && <LoadingOverlay />}
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
@@ -73,10 +91,7 @@ export default function EstatisticasPage() {
           />
         </div>
         <Button
-          onClick={() => {
-            carregarMensal();
-            carregarAnual();
-          }}
+          onClick={() => setTentativa((valor) => valor + 1)}
         >
           Atualizar
         </Button>
