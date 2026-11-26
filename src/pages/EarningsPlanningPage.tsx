@@ -78,7 +78,7 @@ export default function EarningsPlanningPage() {
 
   return <div className="mx-auto max-w-[1600px] space-y-5">
     <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-      <div><div className="mb-2 flex items-center gap-2 text-blue-600"><CalendarRange size={20} /><span className="text-sm font-semibold">Planejamento mensal</span></div><h1 className="text-2xl font-bold tracking-tight md:text-3xl">Planejamento de Ganhos</h1><p className="mt-1 text-sm text-slate-500">Planeje seus ganhos e gastos diários para o mês.</p></div>
+      <div><div className="mb-2 flex items-center gap-2 text-blue-600 dark:text-blue-300"><CalendarRange size={20} /><span className="text-sm font-semibold">Planejamento mensal</span></div><h1 className="text-2xl font-bold tracking-tight md:text-3xl">Planejamento de Ganhos</h1><p className="mt-1 text-sm text-muted-foreground">Planeje seus ganhos e gastos diários para o mês.</p></div>
       <div className="flex flex-col gap-2 sm:flex-row"><MonthNavigator month={month} year={year} onPrevious={() => moveMonth(-1)} onNext={() => moveMonth(1)} onToday={goToday} /><Button onClick={save} disabled={loading || saving} className="gap-2 bg-blue-600 hover:bg-blue-700">{saving ? <LoaderCircle className="animate-spin" size={17} /> : <Save size={17} />}Salvar Planejamento</Button></div>
     </header>
     <EarningPlanningSummary days={days} month={month} year={year} />
@@ -89,6 +89,6 @@ export default function EarningsPlanningPage() {
       onRemoveIncome={(value) => removeValueFromEveryDay("plannedIncome", value)}
       onRemoveExpense={(value) => removeValueFromEveryDay("plannedExpense", value)}
     />
-    {loading ? <div className="flex min-h-80 items-center justify-center text-slate-500"><LoaderCircle className="mr-2 animate-spin" size={21} />Carregando planejamento...</div> : <EarningPlanningCalendar year={year} month={month} days={days} onChange={updateDay} />}
+    {loading ? <div className="flex min-h-80 items-center justify-center text-muted-foreground"><LoaderCircle className="mr-2 animate-spin" size={21} />Carregando planejamento...</div> : <EarningPlanningCalendar year={year} month={month} days={days} onChange={updateDay} />}
   </div>;
 }

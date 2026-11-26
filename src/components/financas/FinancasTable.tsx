@@ -56,7 +56,7 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
 
   if (!financas.length)
     return (
-      <Card className="p-4 text-center text-slate-500">
+      <Card className="p-4 text-center text-muted-foreground">
         Nenhuma {tipo === "RENDA" ? "renda" : "despesa"} cadastrada.
       </Card>
     );
@@ -119,24 +119,24 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
   function corDaLinha(financa: any) {
     if (foiAdicionadaHoje(financa)) {
       return tipo === "RENDA"
-        ? "bg-blue-100 hover:bg-blue-200"
-        : "bg-orange-100 hover:bg-orange-200";
+        ? "bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/40 dark:hover:bg-blue-900/60"
+        : "bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60";
     }
 
     if (venceHoje(financa)) {
       return tipo === "RENDA"
-        ? "bg-green-100 hover:bg-green-200"
-        : "bg-red-100 hover:bg-red-200";
+        ? "bg-green-100 hover:bg-green-200 dark:bg-green-950/40 dark:hover:bg-green-900/60"
+        : "bg-red-100 hover:bg-red-200 dark:bg-red-950/40 dark:hover:bg-red-900/60";
     }
 
-    return "hover:bg-slate-50";
+    return "hover:bg-background";
   }
 
   return (
     <>
-      <div className="overflow-x-auto border border-slate-200 rounded-lg">
-        <table className="min-w-full text-sm text-slate-700">
-          <thead className="bg-slate-100 text-slate-900">
+      <div className="overflow-x-auto border border-border rounded-lg">
+        <table className="min-w-full text-sm text-foreground">
+          <thead className="bg-muted text-foreground">
             <tr>
               <th
                 className="p-3 text-left cursor-pointer select-none"
@@ -199,8 +199,8 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
                       f.tipoLancamento === "FIXO"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
                     }`}
                   >
                     {f.tipoLancamento}
@@ -264,7 +264,7 @@ export function FinancasTable({ financas, tipo, onRefresh }: any) {
                 Excluir {tipo === "RENDA" ? "renda" : "despesa"}
               </DialogTitle>
             </DialogHeader>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               Tem certeza que deseja excluir{" "}
               <strong>{deleteTarget.nome}</strong>?
             </p>

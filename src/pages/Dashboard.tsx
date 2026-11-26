@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { YearSelector } from "@/components/YearSelector";
+import { MonthSelector } from "@/components/MonthSelector";
 import { useTheme } from "@/hooks/useTheme";
 import { isCreditoCartao } from "@/lib/creditosCartao";
 import api from "@/services/api";
@@ -126,12 +128,16 @@ export default function Dashboard() {
   }, [mes, ano]);
 
   // 🔹 Alterar mês e ano manualmente
-  function mudarMes(e: React.ChangeEvent<HTMLSelectElement>) {
-    setMes(Number(e.target.value));
+  function mudarMes(novoMes: number, novoAno: number) {
+    setMes(novoMes);
+    setAno(novoAno);
   }
 
-  function mudarAno(e: React.ChangeEvent<HTMLSelectElement>) {
-    setAno(Number(e.target.value));
+  function mudarAno(novoAno: number) {
+    if (novoAno === ano) return;
+
+    setMes(novoAno > ano ? 1 : 12);
+    setAno(novoAno);
   }
 
   if (!resumo) return <p className="text-center mt-10">Carregando...</p>;
@@ -243,33 +249,11 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Filtros de mês/ano */}
       <div className="flex flex-wrap justify-end items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Calendar className="text-slate-600" size={18} />
-          <select
-            value={mes}
-            onChange={mudarMes}
-            className="border rounded-lg px-2 py-1 text-sm"
-          >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {dayjs()
-                  .month(m - 1)
-                  .format("MMMM")}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Calendar className="text-muted-foreground" size={18} />
+          <MonthSelector value={mes} year={ano} onChange={mudarMes} />
 
-          <select
-            value={ano}
-            onChange={mudarAno}
-            className="border rounded-lg px-2 py-1 text-sm"
-          >
-            {Array.from({ length: 6 }, (_, i) => 2022 + i).map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
+          <YearSelector value={ano} onChange={mudarAno} />
         </div>
       </div>
 
@@ -277,32 +261,32 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex items-center gap-2">
-            <ArrowUpCircle className="text-green-600" size={20} />
+            <ArrowUpCircle className="text-green-600 dark:text-green-300" size={20} />
             <CardTitle>Rendas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-green-600">
+          <CardContent className="text-2xl font-semibold text-green-600 dark:text-green-300">
             R$ {resumo.totalRendas.toFixed(2)}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex items-center gap-2">
-            <ArrowDownCircle className="text-red-600" size={20} />
+            <ArrowDownCircle className="text-red-600 dark:text-red-300" size={20} />
             <CardTitle>Despesas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-red-600">
+          <CardContent className="text-2xl font-semibold text-red-600 dark:text-red-300">
             R$ {resumo.totalDespesas.toFixed(2)}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex items-center gap-2">
-            <DollarSign className="text-blue-600" size={20} />
+            <DollarSign className="text-blue-600 dark:text-blue-300" size={20} />
             <CardTitle>Saldo</CardTitle>
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              resumo.saldo >= 0 ? "text-green-600" : "text-red-600"
+              resumo.saldo >= 0 ? "text-green-600 dark:text-green-300" : "text-red-600 dark:text-red-300"
             }`}
           >
             R$ {resumo.saldo.toFixed(2)}
@@ -313,25 +297,25 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Economia</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-slate-600">
+          <CardContent className="text-2xl font-semibold text-muted-foreground">
             {resumo.percentualEconomia}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-          <p className="text-sm text-green-700">💰 Total de rendas</p>
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/40">
+          <p className="text-sm text-green-700 dark:text-green-300">💰 Total de rendas</p>
 
-          <h3 className="text-2xl font-bold text-green-600 mt-1">
+          <h3 className="text-2xl font-bold text-green-600 mt-1 dark:text-green-300">
             {formatarMoeda(salario)}
           </h3>
         </div>
 
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">🧾 Total de despesas</p>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+          <p className="text-sm text-red-700 dark:text-red-300">🧾 Total de despesas</p>
 
-          <h3 className="text-2xl font-bold text-red-600 mt-1">
+          <h3 className="text-2xl font-bold text-red-600 mt-1 dark:text-red-300">
             {formatarMoeda(despesas)}
           </h3>
 
@@ -343,15 +327,15 @@ export default function Dashboard() {
         <div
           className={`rounded-xl p-4 border ${
             saldo >= 0
-              ? "border-blue-200 bg-blue-50"
-              : "border-red-200 bg-red-50"
+              ? "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40"
+              : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40"
           }`}
         >
           <p className="text-sm">🏦 Saldo disponível</p>
 
           <h3
             className={`text-2xl font-bold mt-1 ${
-              saldo >= 0 ? "text-blue-600" : "text-red-600"
+              saldo >= 0 ? "text-blue-600 dark:text-blue-300" : "text-red-600 dark:text-red-300"
             }`}
           >
             {formatarMoeda(saldo)}
@@ -364,8 +348,8 @@ export default function Dashboard() {
       <div
         className={`mt-6 rounded-xl border-l-4 p-5 ${
           saldo >= 0
-            ? "border-l-green-500 bg-green-50"
-            : "border-l-red-500 bg-red-50"
+            ? "border-l-green-500 bg-green-50 dark:bg-green-950/40"
+            : "border-l-red-500 bg-red-50 dark:bg-red-950/40"
         }`}
       >
         <h4 className="font-semibold mb-2">📊 Análise Financeira</h4>
@@ -377,7 +361,7 @@ export default function Dashboard() {
             disponíveis para investir, guardar ou utilizar em objetivos futuros.
           </p>
         ) : (
-          <p className="text-red-600">
+          <p className="text-red-600 dark:text-red-300">
             Suas despesas ultrapassaram sua renda em{" "}
             <strong>{formatarMoeda(Math.abs(saldo))}</strong>.
           </p>
@@ -391,11 +375,11 @@ export default function Dashboard() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-300">
               {formatarMoeda(rendasFixas)}
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {percentualRendasFixas.toFixed(1)}% das rendas
             </p>
           </CardContent>
@@ -411,7 +395,7 @@ export default function Dashboard() {
               {formatarMoeda(rendasVariaveis)}
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {percentualRendasVariaveis.toFixed(1)}% das rendas
             </p>
           </CardContent>
@@ -423,11 +407,11 @@ export default function Dashboard() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-300">
               {formatarMoeda(despesasFixas)}
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {percentualDespesasFixas.toFixed(1)}% das despesas
             </p>
           </CardContent>
@@ -443,7 +427,7 @@ export default function Dashboard() {
               {formatarMoeda(despesasVariaveis)}
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {percentualDespesasVariaveis.toFixed(1)}% das despesas
             </p>
           </CardContent>
@@ -465,7 +449,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Rendas */}
             <div className="flex flex-col items-center">
-              <h3 className="text-green-600 font-semibold mb-2">Rendas</h3>
+              <h3 className="text-green-600 font-semibold mb-2 dark:text-green-300">Rendas</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -504,7 +488,7 @@ export default function Dashboard() {
 
             {/* Despesas */}
             <div className="flex flex-col items-center">
-              <h3 className="text-red-600 font-semibold mb-2">Despesas</h3>
+              <h3 className="text-red-600 font-semibold mb-2 dark:text-red-300">Despesas</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -546,11 +530,11 @@ export default function Dashboard() {
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Lista de Rendas */}
             <div>
-              <h3 className="text-green-600 font-semibold mb-2 text-center">
+              <h3 className="text-green-600 font-semibold mb-2 text-center dark:text-green-300">
                 Detalhamento das Rendas
               </h3>
               {categoriasRenda.length === 0 ? (
-                <p className="text-center text-slate-500">
+                <p className="text-center text-muted-foreground">
                   Nenhuma renda encontrada.
                 </p>
               ) : (
@@ -567,7 +551,7 @@ export default function Dashboard() {
                         return (
                           <li
                             key={`renda-lista-${i}`}
-                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                            className="flex justify-between items-center border-b border-border pb-1"
                           >
                             <span className="flex items-center gap-2">
                               <span
@@ -578,7 +562,7 @@ export default function Dashboard() {
                               ></span>
                               {c.categoria}
                             </span>
-                            <span className="text-green-600 font-medium">
+                            <span className="text-green-600 font-medium dark:text-green-300">
                               {porcentagem.toFixed(1)}% — R${" "}
                               {c.total.toFixed(2)}
                             </span>
@@ -592,11 +576,11 @@ export default function Dashboard() {
 
             {/* Lista de Despesas */}
             <div>
-              <h3 className="text-red-600 font-semibold mb-2 text-center">
+              <h3 className="text-red-600 font-semibold mb-2 text-center dark:text-red-300">
                 Detalhamento das Despesas
               </h3>
               {categoriasDespesa.length === 0 ? (
-                <p className="text-center text-slate-500">
+                <p className="text-center text-muted-foreground">
                   Nenhuma despesa encontrada.
                 </p>
               ) : (
@@ -613,7 +597,7 @@ export default function Dashboard() {
                         return (
                           <li
                             key={`despesa-lista-${i}`}
-                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                            className="flex justify-between items-center border-b border-border pb-1"
                           >
                             <span className="flex items-center gap-2">
                               <span
@@ -624,7 +608,7 @@ export default function Dashboard() {
                               ></span>
                               {c.categoria}
                             </span>
-                            <span className="text-red-600 font-medium">
+                            <span className="text-red-600 font-medium dark:text-red-300">
                               {porcentagem.toFixed(1)}% — R${" "}
                               {c.total.toFixed(2)}
                             </span>
@@ -638,16 +622,16 @@ export default function Dashboard() {
 
             {/* Comparativo das despesas em relação ao salário */}
             <div className="mt-8">
-              <h3 className="text-blue-600 font-semibold mb-2 text-center">
+              <h3 className="text-blue-600 font-semibold mb-2 text-center dark:text-blue-300">
                 Despesas em relação ao salário
               </h3>
 
               {categoriasDespesa.length === 0 ? (
-                <p className="text-center text-slate-500">
+                <p className="text-center text-muted-foreground">
                   Nenhuma despesa encontrada.
                 </p>
               ) : resumo.totalRendas <= 0 ? (
-                <p className="text-center text-slate-500">
+                <p className="text-center text-muted-foreground">
                   Nenhuma renda encontrada para calcular o comparativo.
                 </p>
               ) : (
@@ -663,7 +647,7 @@ export default function Dashboard() {
                         return (
                           <li
                             key={`despesa-salario-${i}`}
-                            className="flex justify-between items-center border-b border-slate-100 pb-1"
+                            className="flex justify-between items-center border-b border-border pb-1"
                           >
                             <span className="flex items-center gap-2">
                               <span
@@ -675,7 +659,7 @@ export default function Dashboard() {
                               {c.categoria}
                             </span>
 
-                            <span className="text-blue-600 font-medium">
+                            <span className="text-blue-600 font-medium dark:text-blue-300">
                               {porcentagemSalario.toFixed(1)}% da renda — R${" "}
                               {c.total.toFixed(2)}
                             </span>
@@ -697,15 +681,15 @@ export default function Dashboard() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-300">
               {formatarMoeda(tipoLancamento.totalFixo || 0)}
             </div>
 
-            <div className="mt-3 text-sm text-slate-500">
+            <div className="mt-3 text-sm text-muted-foreground">
               Rendas: {formatarMoeda(tipoLancamento.rendasFixas || 0)}
             </div>
 
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               Despesas: {formatarMoeda(tipoLancamento.despesasFixas || 0)}
             </div>
           </CardContent>
@@ -717,15 +701,15 @@ export default function Dashboard() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600">
+            <div className="text-3xl font-bold text-amber-600 dark:text-amber-300">
               {formatarMoeda(tipoLancamento.totalVariavel || 0)}
             </div>
 
-            <div className="mt-3 text-sm text-slate-500">
+            <div className="mt-3 text-sm text-muted-foreground">
               Rendas: {formatarMoeda(tipoLancamento.rendasVariaveis || 0)}
             </div>
 
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               Despesas: {formatarMoeda(tipoLancamento.despesasVariaveis || 0)}
             </div>
           </CardContent>
@@ -867,7 +851,7 @@ export default function Dashboard() {
                           {formatarMoeda(item.valor)}
                         </div>
 
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-muted-foreground">
                           {percentual}%
                         </div>
                       </div>
@@ -896,26 +880,26 @@ export default function Dashboard() {
 
         <CardContent>
           {salario <= 0 ? (
-            <p className="text-center text-slate-500 py-6">
+            <p className="text-center text-muted-foreground py-6">
               Nenhuma renda encontrada para calcular o comparativo.
             </p>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                <div className="rounded-xl border border-border dark:border-slate-700 p-4">
+                  <p className="text-sm text-muted-foreground dark:text-slate-300">
                     Salário/Rendas
                   </p>
-                  <strong className="text-xl text-green-600">
+                  <strong className="text-xl text-green-600 dark:text-green-300">
                     {formatarMoeda(salario)}
                   </strong>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                <div className="rounded-xl border border-border dark:border-slate-700 p-4">
+                  <p className="text-sm text-muted-foreground dark:text-slate-300">
                     Despesas
                   </p>
-                  <strong className="text-xl text-red-600">
+                  <strong className="text-xl text-red-600 dark:text-red-300">
                     {formatarMoeda(despesas)}
                   </strong>
                   <p className="text-sm text-red-500 mt-1">
@@ -923,18 +907,18 @@ export default function Dashboard() {
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                <div className="rounded-xl border border-border dark:border-slate-700 p-4">
+                  <p className="text-sm text-muted-foreground dark:text-slate-300">
                     Saldo livre
                   </p>
                   <strong
                     className={`text-xl ${
-                      saldo >= 0 ? "text-blue-600" : "text-red-600"
+                      saldo >= 0 ? "text-blue-600 dark:text-blue-300" : "text-red-600 dark:text-red-300"
                     }`}
                   >
                     {formatarMoeda(saldo)}
                   </strong>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+                  <p className="text-sm text-muted-foreground dark:text-slate-300 mt-1">
                     {percentualSaldo.toFixed(2)}% do salário
                   </p>
                 </div>
@@ -995,7 +979,7 @@ export default function Dashboard() {
               </div>
 
               {despesas > salario && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                   Suas despesas ultrapassaram o salário em{" "}
                   {(percentualDespesa - 100).toFixed(2)}%.
                 </div>
@@ -1013,12 +997,12 @@ export default function Dashboard() {
                 Categorias Fixas x Variáveis
               </CardTitle>
 
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Visão geral das suas finanças neste período
               </p>
             </div>
 
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               {dayjs()
                 .month(mes - 1)
                 .format("MMMM")}{" "}
@@ -1028,20 +1012,20 @@ export default function Dashboard() {
         </CardHeader>
 
         {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-            <p className="text-sm text-green-700">Total de rendas</p>
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-6 dark:border-green-900 dark:bg-green-950/40">
+            <p className="text-sm text-green-700 dark:text-green-300">Total de rendas</p>
 
-            <h3 className="text-4xl font-bold text-green-600 mt-2">
+            <h3 className="text-4xl font-bold text-green-600 mt-2 dark:text-green-300">
               {formatarMoeda(salario)}
             </h3>
 
-            <p className="text-sm text-green-600 mt-2">100% das entradas</p>
+            <p className="text-sm text-green-600 mt-2 dark:text-green-300">100% das entradas</p>
           </div>
 
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-            <p className="text-sm text-red-700">Total de despesas</p>
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/40">
+            <p className="text-sm text-red-700 dark:text-red-300">Total de despesas</p>
 
-            <h3 className="text-4xl font-bold text-red-600 mt-2">
+            <h3 className="text-4xl font-bold text-red-600 mt-2 dark:text-red-300">
               {formatarMoeda(despesas)}
             </h3>
 
@@ -1050,10 +1034,10 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
-            <p className="text-sm text-blue-700">Saldo disponível</p>
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-900 dark:bg-blue-950/40">
+            <p className="text-sm text-blue-700 dark:text-blue-300">Saldo disponível</p>
 
-            <h3 className="text-4xl font-bold text-blue-600 mt-2">
+            <h3 className="text-4xl font-bold text-blue-600 mt-2 dark:text-blue-300">
               {formatarMoeda(saldo)}
             </h3>
 
@@ -1064,10 +1048,10 @@ export default function Dashboard() {
         </div> */}
 
         <div className="mt-8 rounded-2xl border overflow-hidden">
-          <div className="bg-slate-50 px-6 py-4 border-b">
+          <div className="bg-background px-6 py-4 border-b">
             <h3 className="font-semibold">Detalhamento por Categoria</h3>
 
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Distribuição entre despesas fixas e variáveis
             </p>
           </div>
@@ -1076,12 +1060,12 @@ export default function Dashboard() {
             {categoriasTipoLancamento.map((item) => (
               <div
                 key={item.categoria}
-                className="rounded-xl border p-4 bg-white dark:bg-slate-900"
+                className="rounded-xl border p-4 bg-card dark:bg-slate-900"
               >
                 <div className="flex justify-between mb-2">
                   <span className="font-medium">{item.categoria}</span>
 
-                  <span className="text-sm text-slate-500">
+                  <span className="text-sm text-muted-foreground">
                     {item.percentualFixo}% fixo • {item.percentualVariavel}%
                     variável
                   </span>
@@ -1104,7 +1088,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex justify-between mt-2 text-xs">
-                  <span className="text-blue-600 font-medium">
+                  <span className="text-blue-600 font-medium dark:text-blue-300">
                     🔵 {item.percentualFixo}% Fixo
                   </span>
 
@@ -1120,7 +1104,7 @@ export default function Dashboard() {
 
       {/* Mensagem final */}
       <Card>
-        <CardContent className="text-center py-4 text-slate-700">
+        <CardContent className="text-center py-4 text-foreground">
           {resumo.recomendacao}
         </CardContent>
       </Card>

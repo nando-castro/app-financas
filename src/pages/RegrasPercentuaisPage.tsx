@@ -237,7 +237,7 @@ export default function RegrasPercentuaisPage() {
                   <p className="text-xs text-muted-foreground">
                     Valor Calculado
                   </p>
-                  <p className="font-bold text-emerald-600">
+                  <p className="font-bold text-emerald-600 dark:text-emerald-300">
                     {formatBRL(regra.valorCalculado)}
                   </p>
                 </div>

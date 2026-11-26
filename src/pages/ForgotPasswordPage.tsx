@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
           ) : (
             // ✅ mensagem de sucesso após envio
             <div className="space-y-4 text-center">
-              <p className="text-green-600 font-medium">
+              <p className="text-green-600 font-medium dark:text-green-300">
                 ✉️ E-mail enviado com sucesso!
               </p>
               <p className="text-sm text-muted-foreground">

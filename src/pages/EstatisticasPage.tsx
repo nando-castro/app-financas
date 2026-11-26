@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { MonthSelector } from "@/components/MonthSelector";
+import { YearSelector } from "@/components/YearSelector";
 import { useTheme } from "@/hooks/useTheme";
 import api from "@/services/api";
 import { format } from "date-fns";
@@ -49,105 +50,36 @@ export default function EstatisticasPage() {
     <div className="space-y-6">
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
-        {/* --- Versão Desktop --- */}
-        <div className="hidden md:flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="text-sm text-slate-600">Mês</label>
-            <Input
-              type="number"
-              min={1}
-              max={12}
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
-              className="w-20"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-slate-600">Ano</label>
-            <Input
-              type="number"
-              min={2000}
-              max={2100}
-              value={ano}
-              onChange={(e) => {
-                const novoAno = Number(e.target.value);
-                if (novoAno !== ano) {
-                  setAno(novoAno);
-                  setMes(1); // 🔹 Reset mês ao mudar de ano
-                }
-              }}
-              className="w-28"
-            />
-          </div>
-          <Button
-            onClick={() => {
-              carregarMensal();
-              carregarAnual();
-            }}
-          >
-            Atualizar
-          </Button>
-        </div>
-
-        {/* --- Versão Mobile / Tablet --- */}
-        <div className="flex flex-wrap gap-2 items-center md:hidden w-full">
-          <select
+        <div className="space-y-1">
+          <span className="text-sm text-muted-foreground">Mês</span>
+          <MonthSelector
             value={mes}
-            onChange={(e) => setMes(Number(e.target.value))}
-            className="border rounded-md px-3 py-2 flex-1"
-          >
-            {[
-              "Janeiro",
-              "Fevereiro",
-              "Março",
-              "Abril",
-              "Maio",
-              "Junho",
-              "Julho",
-              "Agosto",
-              "Setembro",
-              "Outubro",
-              "Novembro",
-              "Dezembro",
-            ].map((nome, index) => (
-              <option key={index} value={index + 1}>
-                {nome}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={ano}
-            onChange={(e) => {
-              const novoAno = Number(e.target.value);
-              if (novoAno !== ano) {
-                setAno(novoAno);
-                setMes(1);
-              }
+            year={ano}
+            onChange={(novoMes, novoAno) => {
+              setMes(novoMes);
+              setAno(novoAno);
             }}
-            className="border rounded-md px-3 py-2 flex-1"
-          >
-            {Array.from(
-              { length: 6 },
-              (_, i) => new Date().getFullYear() - 2 + i
-            ).map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 w-full justify-center"
-            onClick={() => {
-              carregarMensal();
-              carregarAnual();
-            }}
-          >
-            Atualizar
-          </Button>
+          />
         </div>
+        <div className="space-y-1">
+          <span className="text-sm text-muted-foreground">Ano</span>
+          <YearSelector
+            value={ano}
+            onChange={(novoAno) => {
+              if (novoAno === ano) return;
+              setMes(novoAno > ano ? 1 : 12);
+              setAno(novoAno);
+            }}
+          />
+        </div>
+        <Button
+          onClick={() => {
+            carregarMensal();
+            carregarAnual();
+          }}
+        >
+          Atualizar
+        </Button>
       </div>
 
       {/* Resumo mensal */}
@@ -156,7 +88,7 @@ export default function EstatisticasPage() {
           <CardHeader>
             <CardTitle>Rendas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-green-600">
+          <CardContent className="text-2xl font-semibold text-green-600 dark:text-green-300">
             R$ {dadosMensal.totalRendas.toFixed(2)}
           </CardContent>
         </Card>
@@ -164,7 +96,7 @@ export default function EstatisticasPage() {
           <CardHeader>
             <CardTitle>Despesas</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-red-600">
+          <CardContent className="text-2xl font-semibold text-red-600 dark:text-red-300">
             R$ {dadosMensal.totalDespesas.toFixed(2)}
           </CardContent>
         </Card>
@@ -174,7 +106,7 @@ export default function EstatisticasPage() {
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              dadosMensal.saldo >= 0 ? "text-green-600" : "text-red-600"
+              dadosMensal.saldo >= 0 ? "text-green-600 dark:text-green-300" : "text-red-600 dark:text-red-300"
             }`}
           >
             R$ {dadosMensal.saldo.toFixed(2)}
@@ -186,7 +118,7 @@ export default function EstatisticasPage() {
           </CardHeader>
           <CardContent
             className={`text-2xl font-semibold ${
-              dadosMensal.saldoAnterior >= 0 ? "text-green-600" : "text-red-600"
+              dadosMensal.saldoAnterior >= 0 ? "text-green-600 dark:text-green-300" : "text-red-600 dark:text-red-300"
             }`}
           >
             R$ {dadosMensal.saldoAnterior.toFixed(2)}
@@ -199,8 +131,8 @@ export default function EstatisticasPage() {
           <CardContent
             className={`text-2xl font-semibold ${
               dadosMensal.saldoAcumulado >= 0
-                ? "text-green-600"
-                : "text-red-600"
+                ? "text-green-600 dark:text-green-300"
+                : "text-red-600 dark:text-red-300"
             }`}
           >
             R$ {dadosMensal.saldoAcumulado.toFixed(2)}
@@ -210,7 +142,7 @@ export default function EstatisticasPage() {
           <CardHeader>
             <CardTitle>Economia</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-slate-600">
+          <CardContent className="text-2xl font-semibold text-muted-foreground">
             {dadosMensal.percentualEconomia}
           </CardContent>
         </Card>
@@ -327,7 +259,7 @@ export default function EstatisticasPage() {
 
       {/* Recomendação */}
       <Card>
-        <CardContent className="text-center py-4 text-slate-700">
+        <CardContent className="text-center py-4 text-foreground">
           {dadosMensal.recomendacao}
         </CardContent>
       </Card>

@@ -466,12 +466,12 @@ export function FinancaDialog({
             />
 
             {mostrarCategorias && categoriasFiltradas.length > 0 && (
-              <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-md max-h-48 overflow-y-auto">
+              <div className="absolute z-50 mt-1 w-full rounded-md border bg-card shadow-md max-h-48 overflow-y-auto">
                 {categoriasFiltradas.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
-                    className="w-full px-3 py-2 text-left hover:bg-slate-100"
+                    className="w-full px-3 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       setCategoriaBusca(cat.nome);
                       setForm({
@@ -526,7 +526,7 @@ export function FinancaDialog({
                 className="w-16 h-10 p-1"
               />
 
-              <span className="text-sm text-slate-500">{form.cor}</span>
+              <span className="text-sm text-muted-foreground">{form.cor}</span>
             </div>
           </div> */}
 
@@ -573,14 +573,14 @@ export function FinancaDialog({
                     </Select>
 
                     {!!cartaoLabel && (
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Será lançado no cartão:{" "}
                         <span className="font-medium">{cartaoLabel}</span>
                       </p>
                     )}
 
                     {!cartoes.length && (
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Nenhum cartão cadastrado. Cadastre um cartão na tela de
                         cartões.
                       </p>
@@ -624,13 +624,13 @@ export function FinancaDialog({
                 className={unica || parcelasInformadas ? "opacity-70" : ""}
               />
               {parcelasInformadas && form.dataInicio && form.dataFim && (
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Calculada pelas {form.parcelas} parcelas a partir da data
                   início.
                 </p>
               )}
               {repetirAteDataFim && form.dataInicio && form.dataFim && (
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Serão gerados lançamentos mensais de {form.dataInicio} até{" "}
                   {form.dataFim}, cada um com data fim igual à data início do
                   mês.
@@ -696,7 +696,7 @@ export function FinancaDialog({
                 disabled={repetirAteDataFim}
                 className={repetirAteDataFim ? "opacity-70" : ""}
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Se informar parcelas, a data fim será calculada automaticamente.
                 {repetirAteDataFim
                   ? " (Desabilitado porque será criada uma por mês até a data fim.)"

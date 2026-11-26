@@ -61,7 +61,7 @@ export default function PwaPrompt() {
 
   return (
     <section aria-label={needRefresh ? "Atualização do app" : "Instalação do app"}
-      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 text-foreground shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
       <p className="font-semibold">{needRefresh ? "Nova versão disponível" : "Tenha o Finanças no seu dispositivo"}</p>
       <p className="mt-1 text-sm">
         {needRefresh ? "Salve suas alterações antes de atualizar o app." : installPrompt

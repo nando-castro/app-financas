@@ -298,7 +298,7 @@ export default function InvestimentosPage() {
                 <TrendingUp size={16} />
                 Rendimentos
               </span>
-              <span className="font-medium text-emerald-600">
+              <span className="font-medium text-emerald-600 dark:text-emerald-300">
                 {formatBRL(resumo.totalRendimento)}
               </span>
             </div>
@@ -437,11 +437,11 @@ export default function InvestimentosPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-xl border bg-emerald-50 border-emerald-200 p-3">
-                    <p className="text-xs text-emerald-700">
+                  <div className="rounded-xl border bg-emerald-50 border-emerald-200 p-3 dark:bg-emerald-950/40 dark:border-emerald-900">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-300">
                       Rendimento acumulado
                     </p>
-                    <p className="font-semibold mt-1 text-emerald-700">
+                    <p className="font-semibold mt-1 text-emerald-700 dark:text-emerald-300">
                       {formatBRL(rendimentoAcumulado)}
                     </p>
                   </div>

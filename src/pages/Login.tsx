@@ -1,3 +1,4 @@
+import { lerUsuarioDoToken } from "@/lib/usuario";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,23 +17,6 @@ function lerUltimoAcesso(): UsuarioRecente | null {
     const usuario = JSON.parse(salvo) as Partial<UsuarioRecente>;
     return typeof usuario.nome === "string" && typeof usuario.email === "string"
       ? { nome: usuario.nome, email: usuario.email }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function lerUsuarioDoToken(token: string): UsuarioRecente | null {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const bytes = Uint8Array.from(atob(base64), (caractere) =>
-      caractere.charCodeAt(0),
-    );
-    const dados = JSON.parse(new TextDecoder().decode(bytes)) as Partial<UsuarioRecente>;
-    return typeof dados.nome === "string" && typeof dados.email === "string"
-      ? { nome: dados.nome, email: dados.email }
       : null;
   } catch {
     return null;
@@ -68,10 +52,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900">
+    <div className="flex items-center justify-center min-h-screen bg-muted dark:bg-slate-900">
       <Card className="w-[90%] max-w-sm shadow-md dark:bg-slate-800">
         <CardHeader>
-          <CardTitle className="text-center text-xl font-semibold text-slate-800 dark:text-slate-100">
+          <CardTitle className="text-center text-xl font-semibold text-foreground dark:text-slate-100">
             Login
           </CardTitle>
         </CardHeader>
@@ -81,20 +65,20 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setEmail(ultimoAcesso.email)}
-              className="mb-4 flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+              className="mb-4 flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:bg-muted dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
               aria-label={`Entrar como ${ultimoAcesso.nome}`}
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                 {ultimoAcesso.nome.trim().charAt(0).toUpperCase()}
               </span>
               <span className="min-w-0">
-                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                <span className="block text-xs text-muted-foreground dark:text-slate-400">
                   Último acesso · Entrar como
                 </span>
-                <span className="block truncate font-medium text-slate-800 dark:text-slate-100">
+                <span className="block truncate font-medium text-foreground dark:text-slate-100">
                   {ultimoAcesso.nome}
                 </span>
-                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                <span className="block truncate text-xs text-muted-foreground dark:text-slate-400">
                   {ultimoAcesso.email}
                 </span>
               </span>
@@ -118,7 +102,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-slate-600 dark:text-slate-300 mt-3">
+          <p className="text-center text-sm text-muted-foreground dark:text-slate-300 mt-3">
             Ainda não tem conta?{" "}
             <a
               href="/register"
@@ -127,7 +111,7 @@ export default function LoginPage() {
               Cadastre-se
             </a>
           </p>
-          <p className="text-center text-sm text-slate-600 dark:text-slate-300 mt-3">
+          <p className="text-center text-sm text-muted-foreground dark:text-slate-300 mt-3">
             <a
               href="/forgot-password"
               className="text-blue-600 dark:text-blue-400 hover:underline"

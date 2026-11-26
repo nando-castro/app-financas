@@ -159,13 +159,13 @@ export default function CategoriasPage() {
 
       {/* Listagem */}
       {categorias.length === 0 ? (
-        <Card className="p-4 text-center text-slate-500">
+        <Card className="p-4 text-center text-muted-foreground">
           Nenhuma categoria cadastrada.
         </Card>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-          <table className="min-w-full text-sm text-slate-700">
-            <thead className="bg-slate-100 text-slate-900">
+        <div className="overflow-x-auto border border-border rounded-lg">
+          <table className="min-w-full text-sm text-foreground">
+            <thead className="bg-muted text-foreground">
               <tr>
                 <th className="p-3 text-left">Nome</th>
                 <th className="p-3 text-left">Tipo</th>
@@ -178,7 +178,7 @@ export default function CategoriasPage() {
 
             <tbody>
               {categorias.map((c) => (
-                <tr key={c.id} className="border-b hover:bg-slate-50">
+                <tr key={c.id} className="border-b hover:bg-background">
                   <td className="p-3 font-medium">{c.nome}</td>
 
                   <td className="p-3">
@@ -244,7 +244,7 @@ export default function CategoriasPage() {
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value as TipoCategoria)}
-                className="w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full h-10 rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-slate-400"
               >
                 <option value="DESPESA">Despesa</option>
                 <option value="RENDA">Renda</option>
@@ -272,12 +272,12 @@ export default function CategoriasPage() {
               <DialogTitle>Excluir Categoria</DialogTitle>
             </DialogHeader>
 
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               Deseja realmente excluir{' '}
               <strong>{deleteTarget.nome}</strong>?
             </p>
 
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Tipo:{' '}
               <strong>{getTipoLabel(deleteTarget.tipo)}</strong>
             </p>

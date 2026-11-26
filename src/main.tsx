@@ -1,8 +1,9 @@
 import React from "react";
+import { ThemeProvider } from "next-themes";
 import ReactDOM from "react-dom/client";
 import PwaPrompt from "./components/PwaPrompt";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster } from "sonner"; // ✅ Import correto do Sonner
+import { Toaster } from "./components/ui/sonner";
 import Layout from "./components/layout/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import "./index.css";
@@ -24,6 +25,7 @@ import EarningsPlanningPage from "./pages/EarningsPlanningPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="theme" disableTransitionOnChange>
     <BrowserRouter>
       <PwaPrompt />
       <Routes>
@@ -161,10 +163,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <Toaster
         richColors
         position="top-right"
-        theme={localStorage.getItem("theme") === "dark" ? "dark" : "light"}
         expand
         duration={3000}
       />
     </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>,
 );

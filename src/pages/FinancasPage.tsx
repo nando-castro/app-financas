@@ -1,7 +1,10 @@
 import { FinancaDialog } from "@/components/financas/FinancaDialog";
+import { YearSelector } from "@/components/YearSelector";
+import { MonthSelector } from "@/components/MonthSelector";
 import { FinancasTable } from "@/components/financas/FinancasTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/CollapsibleCard";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +22,7 @@ import {
   CreditCard,
   Download,
   Filter,
+  Loader2,
   PlusCircle,
   Pencil,
   Scale,
@@ -26,6 +30,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import api, { financasApi } from "../services/api";
 
 type TipoFinanca = "RENDA" | "DESPESA";
@@ -88,13 +93,15 @@ export default function FinancasPage() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [buscaNome, setBuscaNome] = useState("");
+  const [filtrando, setFiltrando] = useState(false);
+  const [limpandoFiltros, setLimpandoFiltros] = useState(false);
 
-  async function buscarFinancas() {
+  async function buscarFinancas(periodo = { mes, ano, categoriaId }) {
     const { data } = await api.get(`/financas/tipo/${tipo}`, {
       params: {
-        mes,
-        ano,
-        categoriaId: categoriaId || undefined,
+        mes: periodo.mes,
+        ano: periodo.ano,
+        categoriaId: periodo.categoriaId || undefined,
       },
     });
 
@@ -163,7 +170,18 @@ export default function FinancasPage() {
   }
 
   async function filtrar() {
-    await Promise.all([buscarFinancas(), buscarResumoDia(dataInicio, dataFim)]);
+    if (filtrando || limpandoFiltros) return;
+
+    setFiltrando(true);
+    try {
+      await Promise.all([buscarFinancas(), buscarResumoDia(dataInicio, dataFim)]);
+      toast.success("Filtros aplicados!");
+    } catch (error) {
+      console.error("Erro ao aplicar filtros:", error);
+      toast.error("Não foi possível aplicar os filtros. Tente novamente.");
+    } finally {
+      setFiltrando(false);
+    }
   }
 
   async function buscarCategorias() {
@@ -174,7 +192,14 @@ export default function FinancasPage() {
         },
       });
 
-      setCategorias(data);
+      setCategorias(
+        [...data].sort((a, b) =>
+          (a.nome || "").localeCompare(b.nome || "", "pt-BR", {
+            sensitivity: "base",
+            numeric: true,
+          }),
+        ),
+      );
     } catch (error) {
       console.error("Erro ao buscar categorias:", error);
     }
@@ -185,6 +210,13 @@ export default function FinancasPage() {
 
     setTipo(novoTipo);
     setCategoriaId("");
+  }
+
+  function handleAnoChange(novoAno: number) {
+    if (novoAno === ano) return;
+
+    setMes(novoAno > ano ? 1 : 12);
+    setAno(novoAno);
   }
 
   useEffect(() => {
@@ -211,21 +243,6 @@ export default function FinancasPage() {
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-  const meses = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
 
   const financasFiltradas = financas.filter((financa) => {
     if (tipo === "RENDA" && isCreditoCartao(financa)) return false;
@@ -268,6 +285,9 @@ export default function FinancasPage() {
       };
 
   async function limparFiltros() {
+    if (limpandoFiltros || filtrando) return;
+
+    setLimpandoFiltros(true);
     const hoje = new Date();
 
     setMes(hoje.getMonth() + 1);
@@ -276,7 +296,18 @@ export default function FinancasPage() {
     setDataInicio("");
     setDataFim("");
     setBuscaNome("");
-    await Promise.all([buscarFinancas(), buscarResumoDia()]);
+    try {
+      await Promise.all([
+        buscarFinancas({ mes: hoje.getMonth() + 1, ano: hoje.getFullYear(), categoriaId: "" }),
+        buscarResumoDia(),
+      ]);
+      toast.success("Filtros limpos!");
+    } catch (error) {
+      console.error("Erro ao limpar filtros:", error);
+      toast.error("Não foi possível atualizar os dados. Tente novamente.");
+    } finally {
+      setLimpandoFiltros(false);
+    }
   }
 
   async function excluirCreditoCartao() {
@@ -347,49 +378,54 @@ export default function FinancasPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="border-emerald-200 bg-emerald-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800">{labelsResumo.rendas}</CardTitle>
-            <ArrowUpCircle className="h-5 w-5 text-emerald-600" />
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+      <CollapsibleCard
+        storageKey="financas:cards:resumo:expanded"
+        title={temFiltroData ? "Resumo do período" : "Resumo do dia"}
+        className="@container min-w-0"
+      >
+      <div className="grid gap-3 px-6 @min-[640px]:grid-cols-3">
+        <Card className="border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/40">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">{labelsResumo.rendas}</CardTitle>
+            <ArrowUpCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-emerald-700">
+          <CardContent className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
             {formatarMoeda(resumoDia.rendas)}
           </CardContent>
         </Card>
-        <Card className="border-red-200 bg-red-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800">{labelsResumo.gastos}</CardTitle>
-            <ArrowDownCircle className="h-5 w-5 text-red-600" />
+        <Card className="border-red-200 bg-red-50/70 dark:border-red-900 dark:bg-red-950/40">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-red-800 dark:text-red-300">{labelsResumo.gastos}</CardTitle>
+            <ArrowDownCircle className="h-5 w-5 text-red-600 dark:text-red-300" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-red-700">
+          <CardContent className="text-2xl font-bold text-red-700 dark:text-red-300">
             {formatarMoeda(resumoDia.despesas)}
           </CardContent>
         </Card>
-        <Card className="border-blue-200 bg-blue-50/70">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800">{labelsResumo.diferencaDia}</CardTitle>
-            <Scale className="h-5 w-5 text-blue-600" />
+        <Card className="border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/40">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-300">{labelsResumo.diferencaDia}</CardTitle>
+            <Scale className="h-5 w-5 text-blue-600 dark:text-blue-300" />
           </CardHeader>
-          <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700" : "text-blue-700"}`}>
+          <CardContent className={`text-2xl font-bold ${resumoDia.rendas - resumoDia.despesas < 0 ? "text-red-700 dark:text-red-300" : "text-blue-700 dark:text-blue-300"}`}>
             {formatarMoeda(resumoDia.rendas - resumoDia.despesas)}
           </CardContent>
         </Card>
       </div>
+      </CollapsibleCard>
 
-      <Card className="border-violet-200 bg-violet-50/50 dark:border-violet-900 dark:bg-violet-950/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <div>
-            <CardTitle className="text-base font-semibold text-violet-900 dark:text-violet-200">
-              Créditos de cartão
-            </CardTitle>
-            <p className="mt-1 text-sm text-violet-700 dark:text-violet-300">
-              Créditos da categoria Cartão no período selecionado
-            </p>
-          </div>
-          <CreditCard className="h-5 w-5 text-violet-600" />
-        </CardHeader>
+      <CollapsibleCard
+        storageKey="financas:cards:creditos:expanded"
+        title="Créditos de cartão"
+        titleClassName="text-base font-semibold text-violet-900 dark:text-violet-200"
+        icon={<CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-300" />}
+        className="min-w-0 border-violet-200 bg-violet-50/50 dark:border-violet-900 dark:bg-violet-950/20"
+      >
         <CardContent>
+          <p className="mb-4 text-sm text-violet-700 dark:text-violet-300">
+            Créditos da categoria Cartão no período selecionado
+          </p>
           {rendasCartaoFiltradas.length ? (
             <div className="space-y-2">
               {rendasCartaoFiltradas.map((credito) => (
@@ -397,7 +433,7 @@ export default function FinancasPage() {
                   key={credito.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white/80 px-3 py-2 text-sm dark:bg-slate-900/60"
                 >
-                  <span className="min-w-0 flex-1 font-medium text-slate-700 dark:text-slate-200">
+                  <span className="min-w-0 flex-1 font-medium text-foreground dark:text-slate-200">
                     {credito.nome || "Sem nome"}
                   </span>
                   <span className="font-semibold text-violet-800 dark:text-violet-200">
@@ -431,7 +467,7 @@ export default function FinancasPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Nenhum crédito de cartão neste período.
             </p>
           )}
@@ -442,7 +478,8 @@ export default function FinancasPage() {
             </span>
           </div>
         </CardContent>
-      </Card>
+      </CollapsibleCard>
+      </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -457,31 +494,16 @@ export default function FinancasPage() {
             className="pl-9"
           />
         </div>
-        <select
+        <MonthSelector
           value={mes}
-          onChange={(e) => setMes(Number(e.target.value))}
-          className="border rounded-md px-3 py-2"
-        >
-          {meses.map((nome, index) => (
-            <option key={index} value={index + 1}>
-              {nome}
-            </option>
-          ))}
-        </select>
+          year={ano}
+          onChange={(novoMes, novoAno) => {
+            setMes(novoMes);
+            setAno(novoAno);
+          }}
+        />
 
-        <select
-          value={ano}
-          onChange={(e) => setAno(Number(e.target.value))}
-          className="border rounded-md px-3 py-2"
-        >
-          {Array.from({ length: 6 }, (_, i) => hoje.getFullYear() - 2 + i).map(
-            (y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ),
-          )}
-        </select>
+        <YearSelector value={ano} onChange={handleAnoChange} />
 
         {/* Filtro de Categoria por tipo */}
         <select
@@ -524,15 +546,24 @@ export default function FinancasPage() {
 
         <div className="flex gap-2">
           <Button
-            variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 active:scale-95"
             onClick={filtrar}
+            disabled={filtrando || limpandoFiltros}
+            aria-busy={filtrando}
           >
-            <Filter size={16} /> Filtrar
+            {filtrando ? <Loader2 size={16} className="animate-spin" /> : <Filter size={16} />}
+            {filtrando ? "Filtrando..." : "Filtrar"}
           </Button>
 
-          <Button variant="secondary" onClick={limparFiltros}>
-            Limpar Filtros
+          <Button
+            variant="destructive"
+            className="active:scale-95"
+            onClick={limparFiltros}
+            disabled={limpandoFiltros || filtrando}
+            aria-busy={limpandoFiltros}
+          >
+            {limpandoFiltros && <Loader2 size={16} className="animate-spin" />}
+            {limpandoFiltros ? "Limpando..." : "Limpar Filtros"}
           </Button>
         </div>
       </div>
@@ -586,7 +617,7 @@ export default function FinancasPage() {
             <DialogHeader>
               <DialogTitle>Remover crédito de cartão</DialogTitle>
             </DialogHeader>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               Tem certeza que deseja remover <strong>{creditoParaExcluir.nome}</strong>?
             </p>
             <DialogFooter className="mt-4">

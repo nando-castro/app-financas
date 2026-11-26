@@ -75,22 +75,22 @@ export function ComparativoSalarioDespesa({ mensal, mesLabel, ano }: Props) {
 
       <CardContent>
         {salario <= 0 ? (
-          <p className="text-center text-slate-500 py-6">
+          <p className="text-center text-muted-foreground py-6">
             Nenhuma renda/salário encontrado para este mês.
           </p>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="rounded-xl border p-4">
-                <p className="text-sm text-slate-500">Salário/Rendas</p>
-                <strong className="text-xl text-emerald-600">
+                <p className="text-sm text-muted-foreground">Salário/Rendas</p>
+                <strong className="text-xl text-emerald-600 dark:text-emerald-300">
                   {formatarMoeda(salario)}
                 </strong>
               </div>
 
               <div className="rounded-xl border p-4">
-                <p className="text-sm text-slate-500">Despesas</p>
-                <strong className="text-xl text-red-600">
+                <p className="text-sm text-muted-foreground">Despesas</p>
+                <strong className="text-xl text-red-600 dark:text-red-300">
                   {formatarMoeda(despesas)}
                 </strong>
                 <p className="text-sm text-red-500 mt-1">
@@ -99,15 +99,15 @@ export function ComparativoSalarioDespesa({ mensal, mesLabel, ano }: Props) {
               </div>
 
               <div className="rounded-xl border p-4">
-                <p className="text-sm text-slate-500">Saldo livre</p>
+                <p className="text-sm text-muted-foreground">Saldo livre</p>
                 <strong
                   className={`text-xl ${
-                    saldo >= 0 ? "text-blue-600" : "text-red-600"
+                    saldo >= 0 ? "text-blue-600 dark:text-blue-300" : "text-red-600 dark:text-red-300"
                   }`}
                 >
                   {formatarMoeda(saldo)}
                 </strong>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {percentualSaldo.toFixed(2)}% do salário
                 </p>
               </div>
@@ -162,7 +162,7 @@ export function ComparativoSalarioDespesa({ mensal, mesLabel, ano }: Props) {
             </div>
 
             {despesas > salario && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                 Suas despesas ultrapassaram o salário em{" "}
                 {(percentualDespesa - 100).toFixed(2)}%.
               </div>

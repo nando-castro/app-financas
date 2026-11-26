@@ -26,25 +26,25 @@ export function EarningPlanningSummary({ days, month, year }: EarningPlanningSum
   const remainingExpense = Math.max(expense - accumulatedExpense, 0);
   const remainingNet = remainingIncome - remainingExpense;
   const mainItems = [
-    { label: "Ganhos planejados", value: money.format(income), icon: CircleDollarSign, color: "text-emerald-600", bar: "bg-emerald-500" },
-    { label: "Gastos planejados", value: money.format(expense), icon: ReceiptText, color: "text-rose-600", bar: "bg-rose-500" },
-    { label: "Saldo previsto", value: money.format(income - expense), icon: Scale, color: income - expense < 0 ? "text-rose-600" : "text-blue-600", bar: income - expense < 0 ? "bg-rose-500" : "bg-blue-500" },
-    { label: "Dias preenchidos", value: `${filled} de ${days.length}`, icon: CalendarCheck, color: "text-violet-600", bar: "bg-violet-500" },
-    { label: "Média diária", value: money.format(filled ? income / filled : 0), icon: TrendingUp, color: "text-amber-600", bar: "bg-amber-500" },
+    { label: "Ganhos planejados", value: money.format(income), icon: CircleDollarSign, color: "text-emerald-600 dark:text-emerald-300", bar: "bg-emerald-500" },
+    { label: "Gastos planejados", value: money.format(expense), icon: ReceiptText, color: "text-rose-600 dark:text-rose-300", bar: "bg-rose-500" },
+    { label: "Saldo previsto", value: money.format(income - expense), icon: Scale, color: income - expense < 0 ? "text-rose-600 dark:text-rose-300" : "text-blue-600 dark:text-blue-300", bar: income - expense < 0 ? "bg-rose-500" : "bg-blue-500" },
+    { label: "Dias preenchidos", value: `${filled} de ${days.length}`, icon: CalendarCheck, color: "text-violet-600 dark:text-violet-300", bar: "bg-violet-500" },
+    { label: "Média diária", value: money.format(filled ? income / filled : 0), icon: TrendingUp, color: "text-amber-600 dark:text-amber-300", bar: "bg-amber-500" },
   ];
 
   const progressItems = [
     { label: "Já arrecadado", value: money.format(accumulatedIncome), icon: WalletCards, color: "text-teal-600", bar: "bg-teal-500" },
     { label: "Falta arrecadar", value: money.format(remainingIncome), icon: TrendingUp, color: "text-cyan-600", bar: "bg-cyan-500" },
-    { label: "Líquido a arrecadar", value: money.format(remainingNet), icon: Scale, color: remainingNet < 0 ? "text-rose-600" : "text-blue-600", bar: remainingNet < 0 ? "bg-rose-500" : "bg-blue-500" },
+    { label: "Líquido a arrecadar", value: money.format(remainingNet), icon: Scale, color: remainingNet < 0 ? "text-rose-600 dark:text-rose-300" : "text-blue-600 dark:text-blue-300", bar: remainingNet < 0 ? "bg-rose-500" : "bg-blue-500" },
     { label: "Já gasto", value: money.format(accumulatedExpense), icon: WalletCards, color: "text-pink-600", bar: "bg-pink-500" },
-    { label: "Falta gastar", value: money.format(remainingExpense), icon: TrendingDown, color: "text-orange-600", bar: "bg-orange-500" },
+    { label: "Falta gastar", value: money.format(remainingExpense), icon: TrendingDown, color: "text-orange-600 dark:text-orange-300", bar: "bg-orange-500" },
   ];
 
   function renderCards(items: typeof mainItems) {
-    return items.map((item) => <div key={item.label} className="overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-slate-900">
+    return items.map((item) => <div key={item.label} className="overflow-hidden rounded-xl border bg-card shadow-sm dark:bg-slate-900">
       <div className={`h-1 ${item.bar}`} />
-      <div className="flex items-center gap-3 p-4"><item.icon className={item.color} size={21} /><div><p className="text-xs font-medium text-slate-500">{item.label}</p><p className={`mt-1 text-lg font-bold ${item.color}`}>{item.value}</p></div></div>
+      <div className="flex items-center gap-3 p-4"><item.icon className={item.color} size={21} /><div><p className="text-xs font-medium text-muted-foreground">{item.label}</p><p className={`mt-1 text-lg font-bold ${item.color}`}>{item.value}</p></div></div>
     </div>);
   }
 

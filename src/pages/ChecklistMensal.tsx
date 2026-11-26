@@ -251,7 +251,7 @@ export default function ChecklistMensal() {
       {/* Filtros + ações */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-2">
-          <Calendar className="text-slate-600" size={18} />
+          <Calendar className="text-muted-foreground" size={18} />
 
           <select
             value={mes}
@@ -284,7 +284,7 @@ export default function ChecklistMensal() {
           <button
             onClick={() => carregar(mes, ano)}
             disabled={loading || saving}
-            className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-background disabled:opacity-60"
           >
             <RefreshCcw size={16} />
             Recarregar
@@ -293,7 +293,7 @@ export default function ChecklistMensal() {
           <button
             onClick={desfazer}
             disabled={dirtyCount === 0 || loading || saving}
-            className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm hover:bg-background disabled:opacity-60"
           >
             Desfazer ({dirtyCount})
           </button>
@@ -313,16 +313,16 @@ export default function ChecklistMensal() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex items-center gap-2">
-            <CheckCircle2 className="text-emerald-600" size={20} />
+            <CheckCircle2 className="text-emerald-600 dark:text-emerald-300" size={20} />
             <CardTitle>Recebidas (marcadas)</CardTitle>
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-semibold text-emerald-600">
+            <div className="text-2xl font-semibold text-emerald-600 dark:text-emerald-300">
               {moneyBRL(resumo.recebidas)}
             </div>
 
-            <div className="text-sm text-slate-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               Falta receber: <b>{moneyBRL(resumo.faltaReceber)}</b>
             </div>
           </CardContent>
@@ -330,16 +330,16 @@ export default function ChecklistMensal() {
 
         <Card>
           <CardHeader className="flex items-center gap-2">
-            <Circle className="text-rose-600" size={20} />
+            <Circle className="text-rose-600 dark:text-rose-300" size={20} />
             <CardTitle>Pagas (marcadas)</CardTitle>
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-semibold text-rose-600">
+            <div className="text-2xl font-semibold text-rose-600 dark:text-rose-300">
               {moneyBRL(resumo.pagas)}
             </div>
 
-            <div className="text-sm text-slate-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               Falta pagar: <b>{moneyBRL(resumo.faltaPagar)}</b>
             </div>
           </CardContent>
@@ -353,13 +353,13 @@ export default function ChecklistMensal() {
           <CardContent>
             <div
               className={`text-2xl font-semibold ${
-                resumo.saldoAnterior >= 0 ? "text-emerald-600" : "text-rose-600"
+                resumo.saldoAnterior >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"
               }`}
             >
               {moneyBRL(resumo.saldoAnterior)}
             </div>
 
-            <div className="text-sm text-slate-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               (do endpoint mensal)
             </div>
           </CardContent>
@@ -374,14 +374,14 @@ export default function ChecklistMensal() {
             <div
               className={`text-2xl font-semibold ${
                 resumo.saldoMesParcial >= 0
-                  ? "text-emerald-600"
-                  : "text-rose-600"
+                  ? "text-emerald-600 dark:text-emerald-300"
+                  : "text-rose-600 dark:text-rose-300"
               }`}
             >
               {moneyBRL(resumo.saldoMesParcial)}
             </div>
 
-            <div className="text-sm text-slate-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               Recebidas − Pagas (marcados)
             </div>
           </CardContent>
@@ -396,14 +396,14 @@ export default function ChecklistMensal() {
             <div
               className={`text-2xl font-semibold ${
                 resumo.saldoAcumuladoParcial >= 0
-                  ? "text-emerald-600"
-                  : "text-rose-600"
+                  ? "text-emerald-600 dark:text-emerald-300"
+                  : "text-rose-600 dark:text-rose-300"
               }`}
             >
               {moneyBRL(resumo.saldoAcumuladoParcial)}
             </div>
 
-            <div className="text-sm text-slate-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               {moneyBRL(resumo.saldoAnterior)} +{" "}
               {moneyBRL(resumo.saldoMesParcial)}
             </div>
@@ -421,9 +421,9 @@ export default function ChecklistMensal() {
 
         <CardContent>
           {loading ? (
-            <p className="text-center text-slate-500 py-6">Carregando...</p>
+            <p className="text-center text-muted-foreground py-6">Carregando...</p>
           ) : itens.length === 0 ? (
-            <p className="text-center text-slate-500 py-6">
+            <p className="text-center text-muted-foreground py-6">
               Nenhuma renda/despesa encontrada para este mês.
             </p>
           ) : (
@@ -432,8 +432,8 @@ export default function ChecklistMensal() {
                 const isRenda = it.tipo === "RENDA";
 
                 const badge = isRenda
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-rose-50 text-rose-700 border-rose-200";
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900"
+                  : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900";
 
                 return (
                   <div
@@ -441,7 +441,7 @@ export default function ChecklistMensal() {
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded-xl p-3"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-24 text-sm text-slate-600">
+                      <div className="w-24 text-sm text-muted-foreground">
                         <div className="font-medium">
                           {dayjs(it.dataLancamento).format("DD/MM")}
                         </div>
@@ -460,13 +460,13 @@ export default function ChecklistMensal() {
                           </span>
 
                           {it.parcelas ? (
-                            <span className="text-xs border rounded-full px-2 py-0.5 text-slate-600">
+                            <span className="text-xs border rounded-full px-2 py-0.5 text-muted-foreground">
                               Parcela {it.parcelaAtual ?? "-"} / {it.parcelas}
                             </span>
                           ) : null}
                         </div>
 
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           ID: {it.financaId}
                           {it.checkedAt
                             ? ` • Marcado em ${dayjs(it.checkedAt).format(
@@ -480,7 +480,7 @@ export default function ChecklistMensal() {
                     <div className="flex items-center justify-between sm:justify-end gap-4">
                       <div
                         className={`font-semibold ${
-                          isRenda ? "text-emerald-700" : "text-rose-700"
+                          isRenda ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"
                         }`}
                       >
                         {moneyBRL(it.valor)}
@@ -498,7 +498,7 @@ export default function ChecklistMensal() {
                           {isRenda ? "Recebi" : "Paguei"}:{" "}
                           <b
                             className={
-                              it.checked ? "text-emerald-700" : "text-slate-600"
+                              it.checked ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"
                             }
                           >
                             {it.checked ? "Sim" : "Não"}
